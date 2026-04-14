@@ -45,14 +45,14 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Track your lead pipeline and processing status</p>
         </div>
         <Link
           to="/dashboard/import"
-          className="flex items-center gap-2 px-4 py-2.5 gradient-primary text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/20"
+          className="flex items-center gap-2 px-4 py-2.5 gradient-primary text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/20 w-fit"
         >
           <Upload className="w-4 h-4" />
           Import Leads
@@ -128,7 +128,7 @@ function BatchRow({ batch, onRetried, index }: { batch: Batch; onRetried: () => 
   return (
     <Link
       to={`/dashboard/batches/${batch.id}`}
-      className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.02] transition-colors animate-fade-in"
+      className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-white/[0.02] transition-colors animate-fade-in"
       style={{ animationDelay: `${index * 30}ms` }}
     >
       {/* Icon */}

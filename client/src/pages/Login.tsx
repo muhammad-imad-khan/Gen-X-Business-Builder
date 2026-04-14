@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { LogIn, Eye, EyeOff, Zap } from 'lucide-react';
+import { LogIn, Eye, EyeOff } from 'lucide-react';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const { login } = useAuth();
@@ -27,12 +28,31 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[var(--color-surface)]">
+    <div className="min-h-screen bg-[var(--color-surface)]">
+      {/* Navbar */}
+      <nav className="fixed top-0 w-full z-50 bg-[var(--color-surface)]/80 backdrop-blur-xl border-b border-[var(--color-border)]">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5">
+            <Logo size="md" />
+            <span className="text-[15px] font-bold text-[var(--color-text-primary)] tracking-tight">Gen X</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/register"
+              className="gradient-primary text-white text-sm font-medium px-4 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/20"
+            >
+              Get Started
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex items-center justify-center min-h-screen pt-16 px-4">
       <div className="w-full max-w-md animate-fade-in">
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl gradient-primary mb-4 shadow-lg shadow-indigo-500/20">
-            <Zap className="w-7 h-7 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <Logo size="lg" />
           </div>
           <h1 className="text-2xl font-bold text-white">Welcome back</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">Sign in to Gen X Business Builder</p>
@@ -97,6 +117,7 @@ export default function Login() {
             Create one
           </Link>
         </p>
+      </div>
       </div>
     </div>
   );

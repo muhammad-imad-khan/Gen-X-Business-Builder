@@ -220,7 +220,7 @@ export default function ImportLeads() {
       {/* Step 1: Solution Type */}
       <section className="mb-6">
         <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">Choose Solution Type</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { key: 'AI_AGENT' as const, icon: Bot, title: 'AI Agent', desc: 'Generate custom AI chatbot solutions', color: 'purple' },
             { key: 'WEBSITE' as const, icon: Globe, title: 'Website', desc: 'Generate website audit & redesign proposals', color: 'blue' },
@@ -291,7 +291,7 @@ export default function ImportLeads() {
       {tab === 'scrape' && (
         <div className="space-y-4">
           {/* Search bar */}
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
               <input

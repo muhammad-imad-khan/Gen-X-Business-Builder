@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Upload, Users, Zap, Settings, Menu, X, ChevronRight, LogOut, Sun, Moon, Monitor } from 'lucide-react';
+import { LayoutDashboard, Upload, Users, Settings, Menu, X, ChevronRight, LogOut, Sun, Moon, Monitor } from 'lucide-react';
+import Logo from './Logo';
 import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/theme';
 
@@ -47,9 +48,7 @@ export default function Layout() {
         {/* Brand */}
         <div className="p-5 pb-4">
           <Link to="/dashboard" className="flex items-center gap-2.5" onClick={() => setSidebarOpen(false)}>
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
+            <Logo size="md" />
             <div>
               <span className="text-[15px] font-bold text-white tracking-tight">Gen X</span>
               <p className="text-[10px] text-[var(--color-text-muted)] font-medium tracking-wider uppercase">Business Builder</p>

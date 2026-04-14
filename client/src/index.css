@@ -125,6 +125,218 @@ body {
 .animate-slide-in {
   animation: slideInLeft 0.3s ease-out both;
 }
+
+/* ─── Landing Page Animations ───────────────────────────────── */
+
+/* Scroll-reveal base */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+.scroll-reveal-left {
+  opacity: 0;
+  transform: translateX(-60px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-reveal-left.revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+.scroll-reveal-right {
+  opacity: 0;
+  transform: translateX(60px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-reveal-right.revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+.scroll-reveal-scale {
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-reveal-scale.revealed {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-12px) rotate(1deg); }
+  66% { transform: translateY(-6px) rotate(-1deg); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Rocket launch */
+@keyframes rocketLaunch {
+  0% { transform: translateY(80px) scale(0.8); opacity: 0; }
+  15% { transform: translateY(20px) scale(1); opacity: 1; }
+  30% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes rocketHover {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+@keyframes rocketFlame {
+  0%, 100% { transform: scaleY(1) scaleX(1); opacity: 0.9; }
+  25% { transform: scaleY(1.3) scaleX(0.8); opacity: 1; }
+  50% { transform: scaleY(1.1) scaleX(1.1); opacity: 0.8; }
+  75% { transform: scaleY(1.4) scaleX(0.9); opacity: 1; }
+}
+@keyframes flamePulse {
+  0%, 100% { opacity: 0.7; filter: blur(2px); }
+  50% { opacity: 1; filter: blur(4px); }
+}
+.animate-rocket-launch {
+  animation: rocketLaunch 2s cubic-bezier(0.16, 1, 0.3, 1) forwards, rocketHover 4s ease-in-out 2s infinite;
+}
+.animate-flame {
+  animation: rocketFlame 0.3s ease-in-out infinite;
+  transform-origin: top center;
+}
+.animate-flame-pulse {
+  animation: flamePulse 0.5s ease-in-out infinite alternate;
+}
+
+/* Smoke trail */
+@keyframes smokeRise {
+  0% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-60px) scale(2); opacity: 0.3; }
+  100% { transform: translateY(-120px) scale(3); opacity: 0; }
+}
+@keyframes smokeSpread {
+  0% { transform: translateY(0) translateX(0) scale(0.5); opacity: 0.5; }
+  100% { transform: translateY(40px) translateX(var(--smoke-x, 20px)) scale(2.5); opacity: 0; }
+}
+.animate-smoke {
+  animation: smokeRise 2s ease-out infinite;
+}
+.animate-smoke-spread {
+  animation: smokeSpread 1.5s ease-out infinite;
+}
+
+/* Stars twinkling */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+@keyframes starDrift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-30px); }
+}
+.animate-twinkle {
+  animation: twinkle var(--twinkle-duration, 3s) ease-in-out var(--twinkle-delay, 0s) infinite;
+}
+
+/* Orbit paths */
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(var(--orbit-radius, 80px)) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(var(--orbit-radius, 80px)) rotate(-360deg); }
+}
+.animate-orbit {
+  animation: orbit var(--orbit-duration, 10s) linear infinite;
+}
+
+/* Speed lines for rocket */
+@keyframes speedLine {
+  0% { transform: translateY(-100%) scaleY(0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(200%) scaleY(1); opacity: 0; }
+}
+.animate-speed-line {
+  animation: speedLine var(--speed-duration, 1.5s) linear var(--speed-delay, 0s) infinite;
+}
+
+/* Counter tick */
+@keyframes countPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* Glow pulse */
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+.animate-glow-pulse {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+/* Card hover lift */
+.card-hover-lift {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.3s ease;
+}
+.card-hover-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+}
+
+/* Gradient border animation */
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(99, 102, 241, 0.2); }
+  50% { border-color: rgba(99, 102, 241, 0.5); }
+}
+.animate-border-glow {
+  animation: borderGlow 3s ease-in-out infinite;
+}
+
+/* Particle float */
+@keyframes particleFloat {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(var(--float-y, -200px)) translateX(var(--float-x, 30px)); opacity: 0; }
+}
+.animate-particle {
+  animation: particleFloat var(--particle-duration, 4s) ease-in-out var(--particle-delay, 0s) infinite;
+}
+
+/* Text gradient shimmer */
+@keyframes textShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-text-shimmer {
+  background-size: 200% auto;
+  animation: textShimmer 4s linear infinite;
+}
+
+/* Badge bounce-in */
+@keyframes bounceIn {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(1.1) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.animate-bounce-in {
+  animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
+}
+
+/* Section divider gradient line */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  opacity: 0.3;
+}
+
+/* Stagger children delay helper */
+.stagger-1 { transition-delay: 0.1s !important; }
+.stagger-2 { transition-delay: 0.2s !important; }
+.stagger-3 { transition-delay: 0.3s !important; }
+.stagger-4 { transition-delay: 0.4s !important; }
+.stagger-5 { transition-delay: 0.5s !important; }
+.stagger-6 { transition-delay: 0.6s !important; }
 .skeleton {
   background: linear-gradient(90deg, var(--color-skeleton-from) 25%, var(--color-skeleton-via) 50%, var(--color-skeleton-from) 75%);
   background-size: 200% 100%;

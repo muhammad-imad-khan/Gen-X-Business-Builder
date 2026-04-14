@@ -129,9 +129,9 @@ function DeploymentBanner({ deployment }: { deployment: Deployment }) {
 
   return (
     <div className={`glass-card p-4 border-l-2 ${deployment.status === 'DEPLOYED' ? 'border-l-emerald-500' : deployment.status === 'FAILED' ? 'border-l-red-500' : 'border-l-indigo-500'}`}>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-indigo-500/10">
+          <div className="p-2 rounded-lg bg-indigo-500/10 shrink-0">
             <Rocket className="w-4 h-4 text-indigo-400" />
           </div>
           <div>
@@ -145,7 +145,7 @@ function DeploymentBanner({ deployment }: { deployment: Deployment }) {
             <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{deployment.projectName}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-11 sm:ml-0">
           {deployment.repoUrl && (
             <a
               href={deployment.repoUrl}
@@ -319,7 +319,7 @@ function AIAgentView({ content }: { content: Record<string, any> }) {
 
       {content.roi && (
         <Card title="ROI Analysis" icon={Target}>
-          <div className="grid grid-cols-3 gap-3 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <MetricBox label="Time Saved" value={content.roi.timeSaved} color="emerald" />
             <MetricBox label="Lead Increase" value={content.roi.leadIncrease} color="blue" />
             <MetricBox label="Cost Reduction" value={content.roi.costReduction} color="purple" />
@@ -346,7 +346,7 @@ function WebsiteView({ content }: { content: Record<string, any> }) {
               {content.currentSiteAudit.overallScore > 60 ? 'Good' : content.currentSiteAudit.overallScore > 30 ? 'Needs Work' : 'Poor'}
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <IssueList title="UX Issues" items={content.currentSiteAudit.uxIssues} color="text-red-300/80" />
             <IssueList title="SEO Gaps" items={content.currentSiteAudit.seoGaps} color="text-orange-300/80" />
             <IssueList title="Performance" items={content.currentSiteAudit.performanceIssues} color="text-amber-300/80" />

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { UserPlus, Eye, EyeOff, Zap } from 'lucide-react';
+import { UserPlus, Eye, EyeOff } from 'lucide-react';
+import Logo from '../components/Logo';
 
 export default function Register() {
   const { register } = useAuth();
@@ -25,7 +26,9 @@ export default function Register() {
         password: form.password,
         company: form.company || undefined,
       });
-      navigate('/welcome');
+      // Flag so GuestRoute redirects to /welcome instead of /dashboard
+      sessionStorage.setItem('genx_just_registered', '1');
+      navigate('/welcome', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -34,12 +37,31 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[var(--color-surface)]">
+    <div className="min-h-screen bg-[var(--color-surface)]">
+      {/* Navbar */}
+      <nav className="fixed top-0 w-full z-50 bg-[var(--color-surface)]/80 backdrop-blur-xl border-b border-[var(--color-border)]">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5">
+            <Logo size="md" />
+            <span className="text-[15px] font-bold text-[var(--color-text-primary)] tracking-tight">Gen X</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/login"
+              className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors px-3 py-1.5"
+            >
+              Sign in
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <div className="flex items-center justify-center min-h-screen pt-16 px-4">
       <div className="w-full max-w-md animate-fade-in">
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl gradient-primary mb-4 shadow-lg shadow-indigo-500/20">
-            <Zap className="w-7 h-7 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <Logo size="lg" />
           </div>
           <h1 className="text-2xl font-bold text-white">Create your account</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">Start generating leads in minutes</p>
@@ -127,6 +149,7 @@ export default function Register() {
             Sign in
           </Link>
         </p>
+      </div>
       </div>
     </div>
   );

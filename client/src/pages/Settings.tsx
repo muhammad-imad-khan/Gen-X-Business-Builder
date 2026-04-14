@@ -311,7 +311,7 @@ export default function Settings() {
 
       {/* ─── Vercel Integration ─────────────────────────────────── */}
       <section className="glass-card p-5">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <SectionHeader
             icon={Globe}
             iconBg="bg-white/5"
@@ -398,7 +398,7 @@ export default function Settings() {
 
       {/* ─── GitHub Integration ─────────────────────────────────── */}
       <section className="glass-card p-5">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <SectionHeader
             icon={Github}
             iconBg="bg-white/5"
@@ -473,7 +473,7 @@ export default function Settings() {
 
       {/* ─── Auto Deploy Toggle ─────────────────────────────────── */}
       <section className="glass-card p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <SectionHeader
             icon={Rocket}
             iconBg="bg-purple-500/10"
@@ -522,7 +522,7 @@ export default function Settings() {
         />
 
         {/* Add new category */}
-        <form onSubmit={addCategory} className="flex items-end gap-2 mt-5 mb-4">
+        <form onSubmit={addCategory} className="flex flex-col sm:flex-row sm:items-end gap-2 mt-5 mb-4">
           <div className="flex-1">
             <label className="form-label">Category Name</label>
             <input

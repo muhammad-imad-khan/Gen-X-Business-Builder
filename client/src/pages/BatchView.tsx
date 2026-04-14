@@ -100,7 +100,7 @@ export default function BatchView() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center gap-3 sm:gap-4 mb-6">
         <Link to="/dashboard" className="p-2 rounded-xl hover:bg-white/[0.04] transition-colors">
           <ArrowLeft className="w-5 h-5 text-[var(--color-text-secondary)]" />
         </Link>
@@ -118,12 +118,12 @@ export default function BatchView() {
             {batch.solutionType === 'AI_AGENT' ? 'AI Agent' : 'Website'} · {batch.totalLeads} leads
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
           {batch.status === 'PENDING' && (
             <button
               onClick={handleStart}
               disabled={starting}
-              className="flex items-center gap-2 px-5 py-2.5 gradient-primary text-white font-medium rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity shadow-lg shadow-indigo-500/20 text-sm"
+              className="flex items-center gap-2 px-5 py-2.5 gradient-primary text-white font-medium rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity shadow-lg shadow-indigo-500/20 text-sm flex-1 sm:flex-initial justify-center"
             >
               <Play className="w-4 h-4" />
               {starting ? 'Starting...' : 'Start Processing'}
@@ -133,7 +133,7 @@ export default function BatchView() {
             <button
               onClick={handleRetry}
               disabled={retrying}
-              className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 text-red-400 font-medium rounded-xl hover:bg-red-500/20 disabled:opacity-50 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 text-red-400 font-medium rounded-xl hover:bg-red-500/20 disabled:opacity-50 transition-colors text-sm flex-1 sm:flex-initial justify-center"
             >
               <RotateCcw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
               {retrying ? 'Retrying...' : `Retry Failed (${progress?.failed})`}
@@ -183,7 +183,7 @@ export default function BatchView() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { icon: Clock, label: 'Pending', value: progress?.pending ?? 0, color: 'text-[var(--color-text-muted)]' },
             { icon: Loader, label: 'In Progress', value: batch.inProgress, color: 'text-amber-400' },

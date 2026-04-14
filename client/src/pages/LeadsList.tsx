@@ -86,8 +86,8 @@ export default function LeadsList() {
       )}
 
       {/* Search + Filter */}
-      <div className="flex gap-3 mb-5">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
           <input
             type="text"
@@ -196,7 +196,7 @@ export default function LeadsList() {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between px-5 py-3 border-t border-[var(--color-border)]">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-5 py-3 border-t border-[var(--color-border)]">
               <p className="text-[11px] text-[var(--color-text-muted)]">
                 Showing {(page - 1) * 20 + 1}–{Math.min(page * 20, total)} of {total}
               </p>

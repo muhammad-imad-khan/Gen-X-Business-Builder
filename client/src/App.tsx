@@ -38,7 +38,14 @@ function GuestRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) {
+    // After registration, redirect to /welcome celebration instead of /dashboard
+    const justRegistered = sessionStorage.getItem('genx_just_registered');
+    if (justRegistered) {
+      return <Navigate to="/welcome" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
   return <>{children}</>;
 }
 
