@@ -51,15 +51,21 @@ export async function getPlanUsage(userId: string): Promise<PlanUsage> {
     },
   });
 
-  // Count existing deployments (non-failed)
+  // Count existing deployments (non-failed) for this user's leads
   let deploymentCount = 0;
   try {
-    deploymentCount = await prisma.deployment.count({
-      where: {
-        lead: { userId },
-        status: { in: ['PENDING', 'DEPLOYING', 'DEPLOYED'] },
-      },
+    const userLeadIds = await prisma.lead.findMany({
+      where: { userId },
+      select: { id: true },
     });
+    if (userLeadIds.length > 0) {
+      deploymentCount = await prisma.deployment.count({
+        where: {
+          leadId: { in: userLeadIds.map(l => l.id) },
+          status: { in: ['PENDING', 'DEPLOYING', 'DEPLOYED'] },
+        },
+      });
+    }
   } catch {
     // deployment model may not be available
   }
