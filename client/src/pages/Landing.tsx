@@ -186,7 +186,7 @@ export default function Landing() {
     <div className="min-h-screen bg-[var(--color-surface)] overflow-hidden">
 
       {/* ─── Full-Page Rocket Background ─────────────────── */}
-      <RocketScene scrollProgress={scrollProgress} fullPage mode="dual" />
+      <RocketScene scrollProgress={scrollProgress} fullPage />
 
       {/* ─── Navbar ──────────────────────────────────────── */}
       <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'bg-[var(--color-surface)]/90 backdrop-blur-xl shadow-lg shadow-black/10 border-b border-[var(--color-border)]' : 'bg-transparent'}`}>
