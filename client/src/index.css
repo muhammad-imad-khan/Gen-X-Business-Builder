@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+/* ─── Design Tokens: Dark (default) ─────────────────────────── */
+:root, .dark {
+  --color-primary: #6366f1;
+  --color-primary-hover: #818cf8;
+  --color-primary-muted: rgba(99, 102, 241, 0.12);
+  --color-surface: #0f0f14;
+  --color-surface-raised: #16161e;
+  --color-surface-overlay: #1c1c27;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-hover: rgba(255, 255, 255, 0.12);
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #8b8b9e;
+  --color-text-muted: #55556a;
+  --color-text-on-primary: #ffffff;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
+  --color-card-bg: #16161e;
+  --color-card-hover: rgba(255, 255, 255, 0.04);
+  --color-scrollbar-thumb: rgba(255, 255, 255, 0.08);
+  --color-scrollbar-hover: rgba(255, 255, 255, 0.14);
+  --color-backdrop: rgba(0, 0, 0, 0.6);
+  --color-skeleton-from: #16161e;
+  --color-skeleton-via: #1c1c27;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-elevated: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  color-scheme: dark;
+}
+
+/* ─── Design Tokens: Light ──────────────────────────────────── */
+.light {
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-primary-muted: rgba(99, 102, 241, 0.08);
+  --color-surface: #f5f5f7;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #f0f0f3;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-hover: rgba(0, 0, 0, 0.15);
+  --color-text-primary: #111118;
+  --color-text-secondary: #5a5a6e;
+  --color-text-muted: #8b8b9e;
+  --color-text-on-primary: #ffffff;
+  --color-success: #16a34a;
+  --color-warning: #ca8a04;
+  --color-error: #dc2626;
+  --color-card-bg: #ffffff;
+  --color-card-hover: rgba(0, 0, 0, 0.02);
+  --color-scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --color-scrollbar-hover: rgba(0, 0, 0, 0.20);
+  --color-backdrop: rgba(0, 0, 0, 0.3);
+  --color-skeleton-from: #e5e5ea;
+  --color-skeleton-via: #f0f0f3;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 4px 24px rgba(0, 0, 0, 0.08);
+  color-scheme: light;
+}
+
+/* ─── Global Resets & Base ──────────────────────────────────── */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ─── Custom Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar-thumb);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-scrollbar-hover);
+}
+
+/* ─── Focus Ring ────────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Utility Animations ────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
+.animate-slide-in {
+  animation: slideInLeft 0.3s ease-out both;
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-skeleton-from) 25%, var(--color-skeleton-via) 50%, var(--color-skeleton-from) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── Glass morphism card ───────────────────────────────────── */
+.glass-card {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.glass-card:hover {
+  border-color: var(--color-border-hover);
+}
+
+/* ─── Form Elements ─────────────────────────────────────────── */
+select,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  color-scheme: inherit;
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px !important;
+  cursor: pointer;
+}
+
+select option {
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  padding: 8px 12px;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-primary-muted), 0 0 0 1px var(--color-primary);
+}
+
+/* Custom styled input */
+.form-input {
+  background: var(--color-surface-overlay);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-muted);
+}
+.form-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.form-select {
+  background: var(--color-surface-overlay);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  padding-right: 36px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  width: 100%;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.form-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-muted);
+}
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+/* ─── Gradient Accents ──────────────────────────────────────── */
+.gradient-primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1, #a78bfa, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Status dot pulse ──────────────────────────────────────── */
+.status-dot-active {
+  position: relative;
+}
+.status-dot-active::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* ─── Theme-aware color overrides ───────────────────────────── */
+/* Remap hardcoded Tailwind dark-theme colors for light mode.
+   This avoids editing 100+ class references across pages.       */
+
+/* text-white → primary text (headings, labels) */
+.light .text-white {
+  color: var(--color-text-primary);
+}
+.light .hover\:text-white:hover {
+  color: var(--color-text-primary);
+}
+
+/* KEEP actual white on gradient & colored backgrounds */
+.light .gradient-primary.text-white,
+.light .gradient-primary .text-white,
+.light [class*="bg-indigo-600"].text-white,
+.light [class*="bg-indigo-600"] .text-white,
+.light [class*="bg-emerald-600"].text-white,
+.light [class*="bg-emerald-600"] .text-white,
+.light [class*="bg-red-500"].text-white,
+.light [class*="bg-red-500"] .text-white {
+  color: #ffffff !important;
+}
+
+/* bg-white/[opacity] → surface-overlay (cards, inputs, hover) */
+.light .bg-white\/\[0\.02\],
+.light .bg-white\/\[0\.04\],
+.light .bg-white\/\[0\.06\],
+.light .bg-white\/5 {
+  background-color: var(--color-surface-overlay);
+}
+.light .hover\:bg-white\/\[0\.02\]:hover,
+.light .hover\:bg-white\/\[0\.04\]:hover,
+.light .hover\:bg-white\/\[0\.06\]:hover {
+  background-color: var(--color-surface-overlay);
+}
+
+/* bg-white/90 & hover:bg-white → overlay (e.g. GitHub button) */
+.light .bg-white\/90 {
+  background-color: var(--color-surface-overlay);
+}
+.light .hover\:bg-white:hover {
+  background-color: var(--color-surface-overlay);
+}
+
+/* text-black → primary text in light mode */
+.light .text-black {
+  color: var(--color-text-primary);
+}
+
+/* Backdrop overlay */
+.light .bg-black\/60 {
+  background-color: var(--color-backdrop);
+}
+

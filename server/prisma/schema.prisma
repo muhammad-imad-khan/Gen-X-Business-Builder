@@ -1,0 +1,308 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// ─── User: authentication & ownership ──────────────────────────
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  company   String?
+  plan      String   @default("free")
+  avatarUrl String?  @map("avatar_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  // Ownership relations
+  leads      Lead[]
+  batches    Batch[]
+  settings   Settings?
+  categories Category[]
+
+  @@map("users")
+}
+
+// ─── Lead: raw scraped business data ───────────────────────────
+model Lead {
+  id          String   @id @default(uuid())
+  batchId     String?  @map("batch_id")
+  userId      String   @map("user_id")
+
+  // Core fields from Map Scraper
+  businessName String  @map("business_name")
+  category     String?
+  address      String?
+  phone        String?
+  website      String?
+  email        String?
+  rating       Float?
+  socials      String?
+  hours        String?
+  metadata     Json?   @default("{}")
+
+  // Processing state
+  solutionType SolutionType?  @map("solution_type")
+  status       LeadStatus     @default(PENDING)
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  // Relations
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrichment   Enrichment?
+  jobs         Job[]
+  deliverables Deliverable[]
+  outreach     OutreachMessage?
+
+  @@index([batchId])
+  @@index([userId])
+  @@index([status])
+  @@index([solutionType])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+// ─── Enrichment: enriched business intelligence ────────────────
+model Enrichment {
+  id      String @id @default(uuid())
+  leadId  String @unique @map("lead_id")
+
+  businessSummary      String?  @map("business_summary") @db.Text
+  services             String[] @default([])
+  targetAudience       String?  @map("target_audience") @db.Text
+  painPoints           String[] @default([]) @map("pain_points")
+  opportunities        String[] @default([])
+  digitalPresenceScore Int?     @default(0) @map("digital_presence_score")
+  maturityLevel        String?  @map("maturity_level")
+  decisionMakerRole    String?  @map("decision_maker_role")
+  socialProfiles       Json?    @default("{}") @map("social_profiles")
+  competitorInsights   String?  @map("competitor_insights") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("enrichments")
+}
+
+// ─── Job: processing tasks for each lead ───────────────────────
+model Job {
+  id     String @id @default(uuid())
+  leadId String @map("lead_id")
+
+  type     JobType
+  status   JobStatus @default(QUEUED)
+  progress Float     @default(0)
+
+  workerName String?  @map("worker_name")
+  errorMsg   String?  @map("error_msg") @db.Text
+  attempts   Int      @default(0)
+
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt      @map("updated_at")
+
+  lead         Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  deliverables Deliverable[]
+
+  @@index([leadId])
+  @@index([status])
+  @@index([type])
+  @@map("jobs")
+}
+
+// ─── Deliverable: generated output (AI Agent spec or Website proposal) ─
+model Deliverable {
+  id     String @id @default(uuid())
+  leadId String @map("lead_id")
+  jobId  String @map("job_id")
+
+  type    DeliverableType
+  title   String?
+  content Json              @default("{}")
+  summary String?           @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([jobId])
+  @@map("deliverables")
+}
+
+// ─── Outreach Message ──────────────────────────────────────────
+model OutreachMessage {
+  id     String @id @default(uuid())
+  leadId String @unique @map("lead_id")
+
+  subject    String  @db.Text
+  body       String  @db.Text
+  toName     String? @map("to_name")
+  toEmail    String? @map("to_email")
+  status     MessageStatus @default(DRAFT)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("outreach_messages")
+}
+
+// ─── Batch: groups of leads imported together ──────────────────
+model Batch {
+  id           String       @id @default(uuid())
+  userId       String       @map("user_id")
+  name         String?
+  solutionType SolutionType @map("solution_type")
+  totalLeads   Int          @default(0) @map("total_leads")
+  completed    Int          @default(0)
+  failed       Int          @default(0)
+  inProgress   Int          @default(0) @map("in_progress")
+  status       BatchStatus  @default(PENDING)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("batches")
+}
+
+// ─── Settings: user API keys, model preferences, integrations ─
+
+// ─── Category: user-defined lead categories for lookup ─────────
+model Category {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  name   String
+  color  String @default("#6366f1")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("categories")
+}
+
+model Settings {
+  id     String @id @default(uuid())
+  userId String @unique @map("user_id")
+
+  // AI Provider config
+  aiProvider   String  @default("openai") @map("ai_provider")   // openai | anthropic | google
+  aiModel      String  @default("gpt-4o") @map("ai_model")
+  aiApiKey     String? @map("ai_api_key")
+
+  // Vercel integration
+  vercelToken       String?  @map("vercel_token")
+  vercelTeamId      String?  @map("vercel_team_id")
+  vercelConnected   Boolean  @default(false) @map("vercel_connected")
+
+  // GitHub integration
+  githubToken       String?  @map("github_token")
+  githubUsername     String?  @map("github_username")
+  githubConnected   Boolean  @default(false) @map("github_connected")
+
+  // Auto-deploy toggle
+  autoDeployToVercel Boolean @default(false) @map("auto_deploy_to_vercel")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+// ─── Deployment: tracks deployed projects ──────────────────────
+model Deployment {
+  id     String @id @default(uuid())
+  leadId String @map("lead_id")
+
+  provider    String   @default("vercel")         // vercel
+  projectName String   @map("project_name")
+  projectUrl  String?  @map("project_url")
+  deployUrl   String?  @map("deploy_url")
+  repoUrl     String?  @map("repo_url")
+  status      DeploymentStatus @default(PENDING)
+  errorMsg    String?  @map("error_msg") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  @@index([leadId])
+  @@map("deployments")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────
+enum SolutionType {
+  AI_AGENT
+  WEBSITE
+}
+
+enum LeadStatus {
+  PENDING
+  ENRICHING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum JobType {
+  ENRICHMENT
+  AI_AGENT_GENERATION
+  WEBSITE_GENERATION
+  OUTREACH_GENERATION
+  DEPLOYMENT
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum DeliverableType {
+  AI_AGENT_SPEC
+  WEBSITE_PROPOSAL
+}
+
+enum MessageStatus {
+  DRAFT
+  SENT
+  FAILED
+}
+
+enum BatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum DeploymentStatus {
+  PENDING
+  DEPLOYING
+  DEPLOYED
+  FAILED
+}
