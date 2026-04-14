@@ -15,6 +15,7 @@ Rules:
 - Tone: professional, warm, concise, credible
 - Do NOT be salesy, pushy, or use clickbait
 - Do NOT use generic phrases like "I hope this email finds you well"
+- If a LIVE DEMO URL is provided, prominently include it in the email body — this is the most powerful hook
 - Format: Subject line on first line, then blank line, then email body
 - Sign off as "[Your Name], [Your Title] at [Your Company]" (use placeholders)`;
 
@@ -22,11 +23,12 @@ export async function generateOutreachMessage(
   lead: Lead,
   enrichment: Enrichment,
   solutionType: SolutionType,
-  deliverableContent?: Record<string, unknown>
+  deliverableContent?: Record<string, unknown>,
+  deployUrl?: string,
 ): Promise<{ subject: string; body: string }> {
   logger.info({ leadId: lead.id, solutionType }, 'Generating outreach message');
 
-  const userPrompt = buildOutreachPrompt(lead, enrichment, solutionType, deliverableContent);
+  const userPrompt = buildOutreachPrompt(lead, enrichment, solutionType, deliverableContent, deployUrl);
 
   const raw = await generateText(OUTREACH_SYSTEM_PROMPT, userPrompt, {
     temperature: 0.8,
@@ -76,7 +78,8 @@ function buildOutreachPrompt(
   lead: Lead,
   enrichment: Enrichment,
   solutionType: SolutionType,
-  deliverableContent?: Record<string, unknown>
+  deliverableContent?: Record<string, unknown>,
+  deployUrl?: string,
 ): string {
   const solutionName = solutionType === 'AI_AGENT' ? 'AI Agent / Chatbot' : 'Website Redesign / Improvement';
 
@@ -118,6 +121,6 @@ ENRICHMENT:
 
 SOLUTION TYPE: ${solutionName}
 ${solutionHighlights}
-
+${deployUrl ? `\nLIVE DEMO URL: ${deployUrl}\n\nIMPORTANT: Include this live demo URL in the email. Phrase it as: "I've put together a working preview — you can see it live here: ${deployUrl}". This makes the email dramatically more compelling because the prospect can immediately see what was built for them.\n` : ''}
 Write the email now. Start with the Subject line.`;
 }

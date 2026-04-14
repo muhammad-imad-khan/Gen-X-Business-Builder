@@ -72,7 +72,55 @@ export async function processLead(leadId: string): Promise<{ success: boolean; e
       throw err;
     }
 
-    // ── Step 3: Outreach Email ──────────────────────────────
+    // ── Step 3: Code Generation ───────────────────────────────
+    const codeGenJob = await prisma.job.create({
+      data: { leadId, type: 'CODE_GENERATION', status: 'RUNNING', progress: 10, startedAt: new Date() },
+    });
+
+    let generatedFiles: Record<string, string> | undefined;
+    try {
+      const enrichmentRecord = await prisma.enrichment.findUnique({ where: { leadId } });
+      const deliverableRecord = await prisma.deliverable.findFirst({
+        where: { leadId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (enrichmentRecord && deliverableRecord) {
+        generatedFiles = generateProjectFiles(lead, enrichmentRecord, deliverableRecord);
+
+        // Store the generated code as a deliverable
+        const appType = lead.solutionType === 'AI_AGENT' ? 'AI_AGENT_APP' : 'WEBSITE_APP';
+        await prisma.deliverable.create({
+          data: {
+            leadId,
+            jobId: codeGenJob.id,
+            type: appType as any,
+            title: `${lead.businessName} — ${lead.solutionType === 'AI_AGENT' ? 'AI Agent App' : 'Business Website'}`,
+            content: {
+              files: generatedFiles,
+              framework: 'nextjs',
+              fileCount: Object.keys(generatedFiles).length,
+              totalSize: Object.values(generatedFiles).reduce((acc, f) => acc + f.length, 0),
+            },
+            summary: `Deployable ${lead.solutionType === 'AI_AGENT' ? 'AI Agent chatbot application' : 'business website'} with ${Object.keys(generatedFiles).length} files — ready for Vercel deployment.`,
+          },
+        });
+      }
+
+      await prisma.job.update({
+        where: { id: codeGenJob.id },
+        data: { status: 'COMPLETED', progress: 100, completedAt: new Date() },
+      });
+    } catch (err) {
+      await prisma.job.update({
+        where: { id: codeGenJob.id },
+        data: { status: 'FAILED', progress: 0, errorMsg: (err as Error).message, completedAt: new Date() },
+      });
+      // Code generation failure is non-blocking — continue with outreach
+      logger.warn({ leadId, err }, 'Code generation failed (non-blocking)');
+    }
+
+    // ── Step 4: Outreach Email ──────────────────────────────
     const outreachJob = await prisma.job.create({
       data: { leadId, type: 'OUTREACH_GENERATION', status: 'RUNNING', progress: 10, startedAt: new Date() },
     });
@@ -91,7 +139,7 @@ export async function processLead(leadId: string): Promise<{ success: boolean; e
       throw err;
     }
 
-    // ── Step 4: Auto-Deploy (optional) ──────────────────────
+    // ── Step 5: Auto-Deploy (optional) ──────────────────────
     let settings: any = null;
     try {
       settings = await (prisma as any).settings?.findUnique({ where: { userId: lead.userId } });
@@ -101,6 +149,8 @@ export async function processLead(leadId: string): Promise<{ success: boolean; e
 
     // Check plan deployment limit before deploying
     const planUsage = await getPlanUsage(lead.userId);
+
+    let deployUrl: string | undefined;
 
     if (
       planUsage.canDeploy &&
@@ -115,31 +165,46 @@ export async function processLead(leadId: string): Promise<{ success: boolean; e
       });
 
       try {
-        // Load enrichment and deliverable from DB for the code generator
-        const enrichmentRecord = await prisma.enrichment.findUnique({ where: { leadId } });
-        const deliverableRecord = await prisma.deliverable.findFirst({
-          where: { leadId },
-          orderBy: { createdAt: 'desc' },
-        });
+        // Use already-generated files from Step 3, or regenerate if missing
+        let filesToDeploy = generatedFiles;
+        if (!filesToDeploy) {
+          const enrichmentRecord = await prisma.enrichment.findUnique({ where: { leadId } });
+          const deliverableRecord = await prisma.deliverable.findFirst({
+            where: { leadId, type: { in: ['AI_AGENT_SPEC', 'WEBSITE_PROPOSAL'] } },
+            orderBy: { createdAt: 'desc' },
+          });
+          if (enrichmentRecord && deliverableRecord) {
+            filesToDeploy = generateProjectFiles(lead, enrichmentRecord, deliverableRecord);
+          }
+        }
 
-        if (enrichmentRecord && deliverableRecord) {
-          const files = generateProjectFiles(lead, enrichmentRecord, deliverableRecord);
+        if (filesToDeploy) {
           const projectName = `${lead.businessName} ${lead.solutionType === 'AI_AGENT' ? 'Agent' : 'Website'}`;
-
-          await deployToVercel({
+          const result = await deployToVercel({
             leadId,
             userId: lead.userId,
             projectName,
-            files,
+            files: filesToDeploy,
             framework: 'nextjs',
           });
+          deployUrl = result.deployUrl;
         }
 
         await prisma.job.update({
           where: { id: deployJob.id },
           data: { status: 'COMPLETED', progress: 100, completedAt: new Date() },
         });
-        logger.info({ leadId }, 'Auto-deploy completed');
+        logger.info({ leadId, deployUrl }, 'Auto-deploy completed');
+
+        // Re-generate outreach with live URL included
+        if (deployUrl) {
+          try {
+            await generateOutreachMessage(lead, enrichment, lead.solutionType, deliverableContent, deployUrl);
+            logger.info({ leadId }, 'Outreach updated with live deploy URL');
+          } catch (err) {
+            logger.warn({ leadId, err }, 'Failed to update outreach with deploy URL');
+          }
+        }
       } catch (err) {
         // Deployment failure should NOT fail the whole lead
         await prisma.job.update({

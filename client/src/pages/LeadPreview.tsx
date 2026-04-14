@@ -5,7 +5,7 @@ import {
   ArrowLeft, Bot, Globe, Mail, BarChart3, Target, AlertCircle,
   Lightbulb, Users, Wrench, BookOpen, MessageSquare, CheckCircle,
   MapPin, Phone, Star, Copy, CheckCheck, Rocket, ExternalLink, Github,
-  Lock, Sparkles, AlertTriangle,
+  Lock, Sparkles, AlertTriangle, FileCode, FolderOpen, ChevronRight, ChevronDown,
 } from 'lucide-react';
 import Modal, { ModalHeader, ModalBody, ModalFooter } from '../components/Modal';
 
@@ -16,7 +16,7 @@ export default function LeadPreview() {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [outreach, setOutreach] = useState<OutreachMessage | null>(null);
   const [deployment, setDeployment] = useState<Deployment | null>(null);
-  const [activeTab, setActiveTab] = useState<'insights' | 'solution' | 'outreach'>('insights');
+  const [activeTab, setActiveTab] = useState<'insights' | 'solution' | 'app' | 'outreach'>('insights');
   const [loading, setLoading] = useState(true);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showIntegrationModal, setShowIntegrationModal] = useState(false);
@@ -57,9 +57,12 @@ export default function LeadPreview() {
     </div>
   );
 
+  const hasGeneratedApp = deliverables.some(d => d.type === 'AI_AGENT_APP' || d.type === 'WEBSITE_APP');
+
   const tabs = [
     { key: 'insights', label: 'Business Insights', icon: BarChart3 },
     { key: 'solution', label: lead.solutionType === 'AI_AGENT' ? 'AI Agent Spec' : 'Website Proposal', icon: lead.solutionType === 'AI_AGENT' ? Bot : Globe },
+    ...(hasGeneratedApp ? [{ key: 'app', label: 'Generated App', icon: Rocket }] : []),
     { key: 'outreach', label: 'Outreach Email', icon: Mail },
   ] as const;
 
@@ -215,7 +218,7 @@ export default function LeadPreview() {
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
-            onClick={() => setActiveTab(key)}
+            onClick={() => setActiveTab(key as typeof activeTab)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium transition-all flex-1 justify-center ${
               activeTab === key
                 ? 'bg-[var(--color-primary-muted)] text-indigo-400 shadow-sm'
@@ -232,6 +235,7 @@ export default function LeadPreview() {
       <div className="animate-fade-in">
         {activeTab === 'insights' && <InsightsPanel enrichment={enrichment} />}
         {activeTab === 'solution' && <SolutionPanel deliverables={deliverables} solutionType={lead.solutionType} />}
+        {activeTab === 'app' && <GeneratedAppPanel deliverables={deliverables} deployment={deployment} />}
         {activeTab === 'outreach' && <OutreachPanel outreach={outreach} />}
       </div>
     </div>
@@ -508,6 +512,199 @@ function WebsiteView({ content }: { content: Record<string, any> }) {
       )}
     </div>
   );
+}
+
+function GeneratedAppPanel({ deliverables, deployment }: { deliverables: Deliverable[]; deployment: Deployment | null }) {
+  const appDeliverable = deliverables.find(d => d.type === 'AI_AGENT_APP' || d.type === 'WEBSITE_APP');
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['src', 'src/app']));
+
+  if (!appDeliverable) {
+    return <EmptyState message="Application code not yet generated. Processing may still be in progress." />;
+  }
+
+  const files: Record<string, string> = appDeliverable.content.files || {};
+  const fileNames = Object.keys(files).sort();
+  const isAgent = appDeliverable.type === 'AI_AGENT_APP';
+
+  // Build folder tree
+  const tree = buildFileTree(fileNames);
+
+  function toggleFolder(path: string) {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }
+
+  function getFileIcon(name: string) {
+    if (name.endsWith('.tsx') || name.endsWith('.ts')) return 'text-blue-400';
+    if (name.endsWith('.css')) return 'text-purple-400';
+    if (name.endsWith('.json')) return 'text-amber-400';
+    if (name.endsWith('.js')) return 'text-yellow-400';
+    return 'text-[var(--color-text-muted)]';
+  }
+
+  function renderTree(nodes: FileNode[], depth = 0): React.ReactNode {
+    return nodes.map(node => {
+      if (node.children) {
+        const isOpen = expandedFolders.has(node.path);
+        return (
+          <div key={node.path}>
+            <button
+              onClick={() => toggleFolder(node.path)}
+              className="flex items-center gap-1.5 w-full px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-white/[0.04] rounded transition-colors"
+              style={{ paddingLeft: `${depth * 12 + 8}px` }}
+            >
+              {isOpen ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+              <FolderOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span>{node.name}</span>
+            </button>
+            {isOpen && renderTree(node.children, depth + 1)}
+          </div>
+        );
+      }
+      return (
+        <button
+          key={node.path}
+          onClick={() => setSelectedFile(node.path)}
+          className={`flex items-center gap-1.5 w-full px-2 py-1 text-xs rounded transition-colors ${
+            selectedFile === node.path
+              ? 'bg-indigo-500/10 text-indigo-400'
+              : 'text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text-secondary)]'
+          }`}
+          style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        >
+          <FileCode className={`w-3.5 h-3.5 shrink-0 ${getFileIcon(node.name)}`} />
+          <span className="truncate">{node.name}</span>
+        </button>
+      );
+    });
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Card */}
+      <div className="glass-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="p-1.5 rounded-lg bg-indigo-500/10">
+            <Rocket className="w-3.5 h-3.5 text-indigo-400" />
+          </div>
+          <h3 className="text-xs font-semibold text-white">
+            {isAgent ? 'AI Agent Application' : 'Business Website'}
+          </h3>
+          <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-medium">
+            Next.js
+          </span>
+        </div>
+        <p className="text-xs text-[var(--color-text-secondary)] mb-3">{appDeliverable.summary}</p>
+        <div className="flex items-center gap-4 text-[11px] text-[var(--color-text-muted)]">
+          <span>{appDeliverable.content.fileCount} files</span>
+          <span>{formatBytes(appDeliverable.content.totalSize)}</span>
+          <span>Framework: {appDeliverable.content.framework}</span>
+        </div>
+        {deployment?.deployUrl && (
+          <a
+            href={deployment.deployUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg gradient-primary text-white text-xs font-medium hover:shadow-lg hover:shadow-indigo-500/20 transition-all"
+          >
+            <ExternalLink className="w-3.5 h-3.5" /> View Live App
+          </a>
+        )}
+      </div>
+
+      {/* File Explorer + Code Viewer */}
+      <div className="glass-card overflow-hidden">
+        <div className="flex flex-col lg:flex-row" style={{ minHeight: '400px' }}>
+          {/* File Tree */}
+          <div className="lg:w-64 border-b lg:border-b-0 lg:border-r border-[var(--color-border)] overflow-y-auto" style={{ maxHeight: '500px' }}>
+            <div className="p-2 border-b border-[var(--color-border)]">
+              <p className="text-[11px] font-medium text-[var(--color-text-muted)] px-2">PROJECT FILES</p>
+            </div>
+            <div className="py-1">
+              {renderTree(tree)}
+            </div>
+          </div>
+
+          {/* Code Viewer */}
+          <div className="flex-1 overflow-auto" style={{ maxHeight: '500px' }}>
+            {selectedFile ? (
+              <div>
+                <div className="flex items-center justify-between px-4 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-overlay)]">
+                  <p className="text-[11px] font-medium text-[var(--color-text-secondary)]">{selectedFile}</p>
+                  <CopyButton text={files[selectedFile]} />
+                </div>
+                <pre className="p-4 text-xs text-[var(--color-text-secondary)] leading-relaxed whitespace-pre-wrap font-mono">
+                  {files[selectedFile]}
+                </pre>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-[var(--color-text-muted)] text-xs">
+                Select a file to view its contents
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface FileNode {
+  name: string;
+  path: string;
+  children?: FileNode[];
+}
+
+function buildFileTree(paths: string[]): FileNode[] {
+  const root: FileNode[] = [];
+  
+  for (const filePath of paths) {
+    const parts = filePath.split('/');
+    let current = root;
+    let currentPath = '';
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      const isFile = i === parts.length - 1;
+
+      let existing = current.find(n => n.name === part);
+      if (!existing) {
+        existing = { name: part, path: currentPath, ...(isFile ? {} : { children: [] }) };
+        current.push(existing);
+      }
+      if (!isFile && existing.children) {
+        current = existing.children;
+      }
+    }
+  }
+
+  return root;
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors ${
+        copied ? 'text-emerald-400' : 'text-[var(--color-text-muted)] hover:text-white'
+      }`}
+    >
+      {copied ? <><CheckCheck className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
+    </button>
+  );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function OutreachPanel({ outreach }: { outreach: OutreachMessage | null }) {

@@ -5,8 +5,8 @@ import { randomUUID } from 'crypto';
 type LeadStatus = 'PENDING' | 'ENRICHING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 type SolutionType = 'AI_AGENT' | 'WEBSITE' | null;
 type JobStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
-type JobType = 'ENRICHMENT' | 'AI_AGENT_GENERATION' | 'WEBSITE_GENERATION' | 'OUTREACH_GENERATION';
-type DeliverableType = 'AI_AGENT_SPEC' | 'WEBSITE_PROPOSAL';
+type JobType = 'ENRICHMENT' | 'AI_AGENT_GENERATION' | 'WEBSITE_GENERATION' | 'CODE_GENERATION' | 'OUTREACH_GENERATION' | 'DEPLOYMENT';
+type DeliverableType = 'AI_AGENT_SPEC' | 'WEBSITE_PROPOSAL' | 'AI_AGENT_APP' | 'WEBSITE_APP';
 type BatchStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
 interface LeadRecord {
@@ -443,6 +443,10 @@ function createMockPrisma() {
         store.enrichments.push(record);
         return clone(record);
       },
+      findUnique: async ({ where }: Record<string, unknown>) => {
+        const record = store.enrichments.find((item) => item.leadId === (where as { leadId?: string }).leadId);
+        return record ? clone(record) : null;
+      },
     },
     deliverable: {
       create: async ({ data }: { data: Partial<DeliverableRecord> }) => {
@@ -460,6 +464,13 @@ function createMockPrisma() {
         };
         store.deliverables.push(record);
         return clone(record);
+      },
+      findFirst: async ({ where, orderBy }: Record<string, unknown> = {}) => {
+        let records = store.deliverables.filter((item) =>
+          matchesWhere(item as unknown as Record<string, unknown>, where as Record<string, unknown> | undefined)
+        );
+        records = sortRecords(records, orderBy as { createdAt?: 'asc' | 'desc' } | undefined);
+        return records[0] ? clone(records[0]) : null;
       },
     },
     outreachMessage: {

@@ -84,6 +84,26 @@ describe.skipIf(!runFull)('Full Processing Pipeline (E2E)', () => {
     expect(aiSpec.content.overview).toBeTruthy();
   });
 
+  it('Step 5b: Validate AI Agent App was generated', async () => {
+    const { data } = await apiRequest(`/api/leads/${leadId}/preview`);
+
+    const aiApp = data.deliverables.find((d: any) => d.type === 'AI_AGENT_APP');
+    expect(aiApp).toBeDefined();
+    expect(aiApp.content.files).toBeDefined();
+    expect(aiApp.content.fileCount).toBeGreaterThan(0);
+    expect(aiApp.content.framework).toBe('nextjs');
+
+    // Verify key files exist
+    const files = aiApp.content.files;
+    expect(files['package.json']).toBeTruthy();
+    expect(files['src/app/page.tsx']).toBeTruthy();
+    expect(files['src/app/layout.tsx']).toBeTruthy();
+
+    // The page should contain the agent name and chat widget
+    expect(files['src/app/page.tsx']).toContain('GenX Assistant');
+    expect(files['src/app/page.tsx']).toContain('Send');
+  });
+
   it('Step 6: Validate outreach email exists', async () => {
     const { data } = await apiRequest(`/api/leads/${leadId}/preview`);
 
@@ -150,5 +170,24 @@ describe.skipIf(!runFull)('Full Processing Pipeline - Website Flow', () => {
     expect(proposal.content.executiveSummary).toBeTruthy();
     expect(proposal.content.currentSiteAudit).toBeDefined();
     expect(proposal.content.proposedStructure).toBeDefined();
+  });
+
+  it('Validate Website App was generated', async () => {
+    const { data } = await apiRequest(`/api/leads/${leadId}/preview`);
+
+    const webApp = data.deliverables.find((d: any) => d.type === 'WEBSITE_APP');
+    expect(webApp).toBeDefined();
+    expect(webApp.content.files).toBeDefined();
+    expect(webApp.content.fileCount).toBeGreaterThan(0);
+    expect(webApp.content.framework).toBe('nextjs');
+
+    // Verify key files exist
+    const files = webApp.content.files;
+    expect(files['package.json']).toBeTruthy();
+    expect(files['src/app/page.tsx']).toBeTruthy();
+    expect(files['src/app/layout.tsx']).toBeTruthy();
+
+    // The page should reference the business
+    expect(files['src/app/page.tsx']).toContain('Green Thumb Landscaping');
   });
 });

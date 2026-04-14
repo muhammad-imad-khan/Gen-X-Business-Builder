@@ -59,7 +59,7 @@ export interface Enrichment {
 
 export interface Deliverable {
   id: string;
-  type: 'AI_AGENT_SPEC' | 'WEBSITE_PROPOSAL';
+  type: 'AI_AGENT_SPEC' | 'WEBSITE_PROPOSAL' | 'AI_AGENT_APP' | 'WEBSITE_APP';
   title: string | null;
   content: Record<string, any>;
   summary: string | null;
