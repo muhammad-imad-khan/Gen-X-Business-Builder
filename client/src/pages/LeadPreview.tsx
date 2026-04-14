@@ -44,7 +44,7 @@ export default function LeadPreview() {
     <div className="flex flex-col items-center justify-center h-64 gap-3">
       <AlertCircle className="w-8 h-8 text-[var(--color-error)]" />
       <p className="text-sm text-[var(--color-text-secondary)]">Lead not found</p>
-      <Link to="/leads" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">← Back to leads</Link>
+      <Link to="/dashboard/leads" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">← Back to leads</Link>
     </div>
   );
 
@@ -59,7 +59,7 @@ export default function LeadPreview() {
       {/* Header Card */}
       <div className="glass-card p-5">
         <div className="flex items-start gap-4">
-          <Link to="/leads" className="p-2 rounded-lg bg-[var(--color-surface-overlay)] text-[var(--color-text-muted)] hover:text-white hover:bg-white/[0.06] transition-all mt-0.5">
+          <Link to="/dashboard/leads" className="p-2 rounded-lg bg-[var(--color-surface-overlay)] text-[var(--color-text-muted)] hover:text-white hover:bg-white/[0.06] transition-all mt-0.5">
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div className="flex-1 min-w-0">

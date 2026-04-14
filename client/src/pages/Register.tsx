@@ -25,7 +25,7 @@ export default function Register() {
         password: form.password,
         company: form.company || undefined,
       });
-      navigate('/');
+      navigate('/welcome');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {

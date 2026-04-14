@@ -5,17 +5,17 @@ import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/theme';
 
 const nav = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/import', label: 'Business Builder', icon: Upload },
-  { to: '/leads', label: 'All Leads', icon: Users },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/dashboard/import', label: 'Business Builder', icon: Upload },
+  { to: '/dashboard/leads', label: 'All Leads', icon: Users },
+  { to: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
 const pageTitles: Record<string, string> = {
-  '/': 'Dashboard',
-  '/import': 'Business Builder',
-  '/leads': 'All Leads',
-  '/settings': 'Settings',
+  '/dashboard': 'Dashboard',
+  '/dashboard/import': 'Business Builder',
+  '/dashboard/leads': 'All Leads',
+  '/dashboard/settings': 'Settings',
 };
 
 export default function Layout() {
@@ -25,8 +25,8 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const currentTitle = pageTitles[location.pathname] || 'Gen X';
-  const isBatch = location.pathname.startsWith('/batches/');
-  const isLead = location.pathname.startsWith('/leads/') && location.pathname !== '/leads';
+  const isBatch = location.pathname.startsWith('/dashboard/batches/');
+  const isLead = location.pathname.startsWith('/dashboard/leads/') && location.pathname !== '/dashboard/leads';
 
   return (
     <div className="min-h-screen flex bg-[var(--color-surface)]">
@@ -46,7 +46,7 @@ export default function Layout() {
       >
         {/* Brand */}
         <div className="p-5 pb-4">
-          <Link to="/" className="flex items-center gap-2.5" onClick={() => setSidebarOpen(false)}>
+          <Link to="/dashboard" className="flex items-center gap-2.5" onClick={() => setSidebarOpen(false)}>
             <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-indigo-500/20">
               <Zap className="w-5 h-5 text-white" />
             </div>
@@ -61,7 +61,7 @@ export default function Layout() {
         <nav className="flex-1 px-3 pb-4 space-y-0.5">
           <p className="px-3 pt-4 pb-2 text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">Menu</p>
           {nav.map(({ to, label, icon: Icon }) => {
-            const active = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+            const active = location.pathname === to || (to !== '/dashboard' && location.pathname.startsWith(to));
             return (
               <Link
                 key={to}
@@ -125,7 +125,7 @@ export default function Layout() {
             <div className="flex items-center gap-1.5 text-sm">
               {(isBatch || isLead) && (
                 <>
-                  <Link to={isLead ? '/leads' : '/'} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors">
+                  <Link to={isLead ? '/dashboard/leads' : '/dashboard'} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors">
                     {isLead ? 'All Leads' : 'Dashboard'}
                   </Link>
                   <ChevronRight className="w-3.5 h-3.5 text-[var(--color-text-muted)]" />

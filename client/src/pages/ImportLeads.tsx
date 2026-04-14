@@ -91,7 +91,7 @@ export default function ImportLeads() {
     try {
       const businesses = scrapedResults.filter((_, i) => selected.has(i));
       const result = await api.scrapeImport({ query: searchQuery, solutionType, batchName: batchName || undefined, businesses });
-      navigate(`/batches/${result.batchId}`);
+      navigate(`/dashboard/batches/${result.batchId}`);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -146,7 +146,7 @@ export default function ImportLeads() {
       const leads = parseCSV(csvText);
       if (leads.length === 0) { setError('No valid leads found in CSV'); setCsvLoading(false); return; }
       const result = await api.importLeads({ leads, solutionType, batchName: batchName || undefined });
-      navigate(`/batches/${result.batchId}`);
+      navigate(`/dashboard/batches/${result.batchId}`);
     } catch (err) {
       setError((err as Error).message);
     } finally {

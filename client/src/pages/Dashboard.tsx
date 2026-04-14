@@ -51,7 +51,7 @@ export default function Dashboard() {
           <p className="text-sm text-[var(--color-text-muted)] mt-0.5">Track your lead pipeline and processing status</p>
         </div>
         <Link
-          to="/import"
+          to="/dashboard/import"
           className="flex items-center gap-2 px-4 py-2.5 gradient-primary text-white text-sm font-medium rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/20"
         >
           <Upload className="w-4 h-4" />
@@ -83,7 +83,7 @@ export default function Dashboard() {
             <Sparkles className="w-4 h-4 text-indigo-400" />
             <h2 className="text-sm font-semibold text-white">Recent Batches</h2>
           </div>
-          <Link to="/import" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+          <Link to="/dashboard/import" className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
             View All
           </Link>
         </div>
@@ -127,7 +127,7 @@ function BatchRow({ batch, onRetried, index }: { batch: Batch; onRetried: () => 
 
   return (
     <Link
-      to={`/batches/${batch.id}`}
+      to={`/dashboard/batches/${batch.id}`}
       className="flex items-center gap-4 px-5 py-3.5 hover:bg-white/[0.02] transition-colors animate-fade-in"
       style={{ animationDelay: `${index * 30}ms` }}
     >
@@ -196,7 +196,7 @@ function EmptyBatches() {
         Import businesses from maps or upload a CSV to create your first batch.
       </p>
       <Link
-        to="/import"
+        to="/dashboard/import"
         className="flex items-center gap-2 px-4 py-2 gradient-primary text-white text-xs font-medium rounded-lg shadow-lg shadow-indigo-500/20"
       >
         <Upload className="w-3.5 h-3.5" />

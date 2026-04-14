@@ -143,7 +143,7 @@ export default function LeadsList() {
                   {leads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="px-5 py-3.5">
-                        <Link to={`/leads/${lead.id}`} className="text-sm font-medium text-white hover:text-indigo-400 transition-colors">
+                        <Link to={`/dashboard/leads/${lead.id}`} className="text-sm font-medium text-white hover:text-indigo-400 transition-colors">
                           {lead.businessName}
                         </Link>
                         {lead.website && (
