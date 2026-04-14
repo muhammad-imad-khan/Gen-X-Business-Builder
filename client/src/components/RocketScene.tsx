@@ -3,13 +3,15 @@ import { useEffect, useRef } from 'react';
 interface RocketSceneProps {
   /** 0 = top of page, 1 = scrolled far down. Rocket flies up as this increases. */
   scrollProgress?: number;
+  /** When true, renders as a fixed full-viewport background layer */
+  fullPage?: boolean;
 }
 
 /**
  * Animated rocket scene with flames, smoke, particles, stars, and orbit rings.
  * Canvas-based for smooth 60fps performance. Scroll-driven position.
  */
-export default function RocketScene({ scrollProgress = 0 }: RocketSceneProps) {
+export default function RocketScene({ scrollProgress = 0, fullPage = false }: RocketSceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollRef = useRef(0);
   const scrollVelRef = useRef(0);
@@ -31,13 +33,14 @@ export default function RocketScene({ scrollProgress = 0 }: RocketSceneProps) {
     let time = 0;
 
     const resize = () => {
-      const parent = canvas.parentElement!;
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = parent.clientWidth * dpr;
-      canvas.height = parent.clientHeight * dpr;
-      canvas.style.width = parent.clientWidth + 'px';
-      canvas.style.height = parent.clientHeight + 'px';
-      ctx.scale(dpr, dpr);
+      const w = fullPage ? window.innerWidth : canvas.parentElement!.clientWidth;
+      const h = fullPage ? window.innerHeight : canvas.parentElement!.clientHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
     window.addEventListener('resize', resize);
@@ -464,7 +467,15 @@ export default function RocketScene({ scrollProgress = 0 }: RocketSceneProps) {
     };
   }, []);
 
-  return (
+  return fullPage ? (
+    <div className="fixed inset-0 z-0 pointer-events-none">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full"
+        aria-hidden="true"
+      />
+    </div>
+  ) : (
     <div className="relative w-full h-full">
       <canvas
         ref={canvasRef}

@@ -160,8 +160,9 @@ export default function Landing() {
     const onScroll = () => {
       const y = window.scrollY;
       setScrolled(y > 20);
-      // Map scroll to 0–1 over the first ~1200px of scroll
-      setScrollProgress(Math.min(1, y / 1200));
+      // Map scroll across entire page height (0→1)
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(maxScroll > 0 ? Math.min(1, y / maxScroll) : 0);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -183,6 +184,9 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface)] overflow-hidden">
+
+      {/* ─── Full-Page Rocket Background ─────────────────── */}
+      <RocketScene scrollProgress={scrollProgress} fullPage />
 
       {/* ─── Navbar ──────────────────────────────────────── */}
       <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'bg-[var(--color-surface)]/90 backdrop-blur-xl shadow-lg shadow-black/10 border-b border-[var(--color-border)]' : 'bg-transparent'}`}>
@@ -213,111 +217,97 @@ export default function Landing() {
       </nav>
 
       {/* ─── Hero ────────────────────────────────────────── */}
-      <section className="relative pt-28 sm:pt-32 pb-10 sm:pb-16 px-6">
+      <section className="relative z-10 pt-32 sm:pt-40 pb-20 sm:pb-28 px-6 min-h-[90vh] flex items-center">
         {/* Animated glow effects */}
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[min(600px,100vw)] h-[400px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none animate-glow-pulse" />
         <div className="absolute top-40 left-1/4 w-[min(300px,50vw)] h-[300px] bg-purple-500/8 rounded-full blur-[100px] pointer-events-none animate-glow-pulse" style={{ animationDelay: '1.5s' }} />
         <div className="absolute top-60 right-1/4 w-[min(250px,40vw)] h-[250px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none animate-glow-pulse" style={{ animationDelay: '3s' }} />
 
-        <div className="relative max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div className="relative max-w-4xl mx-auto text-center">
+          {/* Badge */}
+          <div
+            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-8 transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-90'}`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-spin" style={{ animationDuration: '3s' }} />
+            <span className="text-xs font-medium text-indigo-400">AI-Powered Business Intelligence</span>
+          </div>
 
-            {/* Left: Text content */}
-            <div className="text-center lg:text-left">
-              {/* Badge */}
-              <div
-                className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-8 transition-all duration-700 ${heroVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-90'}`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-spin" style={{ animationDuration: '3s' }} />
-                <span className="text-xs font-medium text-indigo-400">AI-Powered Business Intelligence</span>
-              </div>
+          {/* Headline */}
+          <h1
+            className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] mb-6 transition-all duration-700 delay-100 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          >
+            <span className="text-[var(--color-text-primary)]">Turn Local Businesses Into</span>
+            <br />
+            <span className="animate-text-shimmer" style={{ background: 'linear-gradient(90deg, #6366f1, #a78bfa, #818cf8, #6366f1)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              Revenue-Ready Solutions
+            </span>
+          </h1>
 
-              {/* Headline */}
-              <h1
-                className={`text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6 transition-all duration-700 delay-100 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              >
-                <span className="text-[var(--color-text-primary)]">Turn Local Businesses</span>
-                <br />
-                <span className="text-[var(--color-text-primary)]">Into </span>
-                <span className="animate-text-shimmer" style={{ background: 'linear-gradient(90deg, #6366f1, #a78bfa, #818cf8, #6366f1)', backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-                  Revenue-Ready
-                </span>
-                <br />
-                <span className="gradient-text">Solutions</span>
-              </h1>
+          {/* Typing subtitle */}
+          <p
+            className={`text-base sm:text-lg md:text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-10 min-h-[3.5rem] transition-all duration-700 delay-200 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          >
+            {subtitle}
+            {cursor && <span className="inline-block w-0.5 h-5 bg-indigo-400 ml-0.5 align-middle animate-pulse" />}
+          </p>
 
-              {/* Typing subtitle */}
-              <p
-                className={`text-base sm:text-lg text-[var(--color-text-secondary)] max-w-xl mx-auto lg:mx-0 mb-10 min-h-[4rem] transition-all duration-700 delay-200 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              >
-                {subtitle}
-                {cursor && <span className="inline-block w-0.5 h-5 bg-indigo-400 ml-0.5 align-middle animate-pulse" />}
-              </p>
+          {/* CTA Buttons */}
+          <div
+            className={`flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 transition-all duration-700 delay-300 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          >
+            <Link
+              to="/register"
+              className="group inline-flex items-center gap-2 gradient-primary text-white font-semibold px-8 py-3.5 rounded-2xl hover:opacity-90 transition-all shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 text-base hover:scale-105 active:scale-95"
+            >
+              <Rocket className="w-5 h-5 transition-transform group-hover:-translate-y-1 group-hover:rotate-[-15deg]" />
+              Start Building Free
+              <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <a
+              href="#features"
+              className="group inline-flex items-center gap-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] font-medium px-6 py-3.5 rounded-2xl bg-white/[0.04] border border-[var(--color-border)] hover:border-[var(--color-border-hover)] transition-all text-base hover:scale-105 active:scale-95 backdrop-blur-sm"
+            >
+              See How It Works
+              <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </a>
+          </div>
 
-              {/* CTA Buttons */}
-              <div
-                className={`flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 mb-12 transition-all duration-700 delay-300 ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              >
-                <Link
-                  to="/register"
-                  className="group inline-flex items-center gap-2 gradient-primary text-white font-semibold px-8 py-3.5 rounded-2xl hover:opacity-90 transition-all shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 text-base hover:scale-105 active:scale-95"
-                >
-                  <Rocket className="w-5 h-5 transition-transform group-hover:-translate-y-1 group-hover:rotate-[-15deg]" />
-                  Start Building Free
-                  <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
-                </Link>
-                <a
-                  href="#features"
-                  className="group inline-flex items-center gap-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] font-medium px-6 py-3.5 rounded-2xl bg-white/[0.04] border border-[var(--color-border)] hover:border-[var(--color-border-hover)] transition-all text-base hover:scale-105 active:scale-95"
-                >
-                  See How It Works
-                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </a>
-              </div>
+          {/* Stats with animated counters */}
+          <div
+            className={`grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-2xl mx-auto transition-all duration-700 delay-[400ms] ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          >
+            <StatCounter value={10} label="Leads Processed" suffix="K+" />
+            <StatCounter value={98} label="Enrichment Accuracy" suffix="%" />
+            <StatCounter value={50} label="Faster Than Manual" suffix="x" />
+            <StatCounter value={24} label="AI Processing" suffix="/7" />
+          </div>
 
-              {/* Stats with animated counters */}
-              <div
-                className={`grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-lg mx-auto lg:mx-0 transition-all duration-700 delay-[400ms] ${heroVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-              >
-                <StatCounter value={10} label="Leads Processed" suffix="K+" />
-                <StatCounter value={98} label="Enrichment Accuracy" suffix="%" />
-                <StatCounter value={50} label="Faster Than Manual" suffix="x" />
-                <StatCounter value={24} label="AI Processing" suffix="/7" />
+          {/* Floating badges */}
+          <div className="hidden md:block">
+            <div className="absolute -left-4 top-1/3 animate-float" style={{ animationDelay: '0s' }}>
+              <div className="glass-card px-3 py-2 flex items-center gap-2 animate-border-glow backdrop-blur-md">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                </div>
+                <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">Lead Enriched</span>
               </div>
             </div>
 
-            {/* Right: Rocket Scene */}
-            <div
-              className={`relative h-[340px] sm:h-[420px] lg:h-[520px] transition-all duration-1000 delay-500 ${heroVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
-            >
-              <RocketScene scrollProgress={scrollProgress} />
-
-              {/* Floating status badges around rocket */}
-              <div className="absolute top-8 right-4 sm:top-12 sm:right-8 animate-float" style={{ animationDelay: '0s' }}>
-                <div className="glass-card px-3 py-2 flex items-center gap-2 animate-border-glow">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  </div>
-                  <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">Lead Enriched</span>
+            <div className="absolute -right-4 top-1/4 animate-float" style={{ animationDelay: '2s' }}>
+              <div className="glass-card px-3 py-2 flex items-center gap-2 animate-border-glow backdrop-blur-md" style={{ animationDelay: '1s' }}>
+                <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                  <Bot className="w-3.5 h-3.5 text-indigo-400" />
                 </div>
+                <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">AI Agent Ready</span>
               </div>
+            </div>
 
-              <div className="absolute bottom-12 left-2 sm:bottom-16 sm:left-4 animate-float" style={{ animationDelay: '2s' }}>
-                <div className="glass-card px-3 py-2 flex items-center gap-2 animate-border-glow" style={{ animationDelay: '1s' }}>
-                  <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                    <Bot className="w-3.5 h-3.5 text-indigo-400" />
-                  </div>
-                  <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">AI Agent Ready</span>
+            <div className="absolute -left-8 bottom-1/4 animate-float" style={{ animationDelay: '4s' }}>
+              <div className="glass-card px-3 py-2 flex items-center gap-2 animate-border-glow backdrop-blur-md" style={{ animationDelay: '2s' }}>
+                <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <Mail className="w-3.5 h-3.5 text-amber-400" />
                 </div>
-              </div>
-
-              <div className="absolute top-1/2 left-0 sm:left-2 animate-float" style={{ animationDelay: '4s' }}>
-                <div className="glass-card px-3 py-2 flex items-center gap-2 animate-border-glow" style={{ animationDelay: '2s' }}>
-                  <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                    <Mail className="w-3.5 h-3.5 text-amber-400" />
-                  </div>
-                  <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">Outreach Sent</span>
-                </div>
+                <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">Outreach Sent</span>
               </div>
             </div>
           </div>
@@ -325,10 +315,10 @@ export default function Landing() {
       </section>
 
       {/* ─── Gradient Divider ────────────────────────────── */}
-      <div className="section-divider" />
+      <div className="section-divider relative z-10" />
 
       {/* ─── How It Works ────────────────────────────────── */}
-      <section className="py-20 px-6" ref={howItWorksRef}>
+      <section className="relative z-10 py-20 px-6" ref={howItWorksRef}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <div className="scroll-reveal">
@@ -365,10 +355,10 @@ export default function Landing() {
         </div>
       </section>
 
-      <div className="section-divider" />
+      <div className="section-divider relative z-10" />
 
       {/* ─── Features ────────────────────────────────────── */}
-      <section id="features" className="py-20 px-6" ref={featuresRef}>
+      <section id="features" className="relative z-10 py-20 px-6" ref={featuresRef}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <div className="scroll-reveal">
@@ -393,10 +383,10 @@ export default function Landing() {
         </div>
       </section>
 
-      <div className="section-divider" />
+      <div className="section-divider relative z-10" />
 
       {/* ─── Pricing ─────────────────────────────────────── */}
-      <section id="pricing" className="py-20 px-6" ref={pricingRef}>
+      <section id="pricing" className="relative z-10 py-20 px-6" ref={pricingRef}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <div className="scroll-reveal">
@@ -450,10 +440,10 @@ export default function Landing() {
         </div>
       </section>
 
-      <div className="section-divider" />
+      <div className="section-divider relative z-10" />
 
       {/* ─── CTA ─────────────────────────────────────────── */}
-      <section className="py-24 px-6 relative" ref={ctaRef}>
+      <section className="relative z-10 py-24 px-6" ref={ctaRef}>
         {/* Background glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(500px,90vw)] h-[300px] bg-indigo-500/8 rounded-full blur-[100px] animate-glow-pulse" />
@@ -490,7 +480,7 @@ export default function Landing() {
       </section>
 
       {/* ─── Footer ──────────────────────────────────────── */}
-      <footer className="border-t border-[var(--color-border)] py-8 px-6">
+      <footer className="relative z-10 border-t border-[var(--color-border)] py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Logo size="sm" />
