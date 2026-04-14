@@ -6,6 +6,7 @@ import { generateWebsiteProposal } from './website-generator';
 import { generateOutreachMessage } from './outreach-generator';
 import { generateProjectFiles } from './code-generator';
 import { deployToVercel } from './deployment';
+import { getPlanUsage } from '../lib/plan-limits';
 
 /**
  * Serverless-compatible lead processor.
@@ -97,7 +98,12 @@ export async function processLead(leadId: string): Promise<{ success: boolean; e
     } catch {
       // settings not available
     }
+
+    // Check plan deployment limit before deploying
+    const planUsage = await getPlanUsage(lead.userId);
+
     if (
+      planUsage.canDeploy &&
       settings?.autoDeployToVercel &&
       settings.vercelConnected &&
       settings.vercelToken &&

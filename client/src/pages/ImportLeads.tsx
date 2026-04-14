@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api, ScrapedBusiness } from '../lib/api';
 import {
   Upload, Bot, Globe, FileSpreadsheet, Search, Loader2,
   MapPin, Star, Phone, ExternalLink, CheckCircle2, X,
-  ArrowRight, Tags, Sparkles, Lock,
+  ArrowRight, Tags, Sparkles, Lock, Rocket, AlertTriangle,
 } from 'lucide-react';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../components/Modal';
 
 type Tab = 'scrape' | 'csv';
 
@@ -44,6 +45,8 @@ export default function ImportLeads() {
   }, []);
 
   const isFreeLimitReached = planUsage ? !planUsage.canProcess : false;
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showIntegrationModal, setShowIntegrationModal] = useState(false);
 
   const handleScrape = async () => {
     if (!searchQuery.trim()) return;
@@ -166,31 +169,134 @@ export default function ImportLeads() {
 
       {/* Free plan limit banner */}
       {planUsage && planUsage.plan === 'free' && (
-        <div className={`mb-6 p-4 rounded-xl border ${
-          isFreeLimitReached
-            ? 'bg-amber-500/[0.06] border-amber-500/20'
-            : 'bg-indigo-500/[0.06] border-indigo-500/20'
-        }`}>
+        <div
+          className={`mb-6 p-4 rounded-xl border cursor-pointer transition-colors ${
+            isFreeLimitReached
+              ? 'bg-amber-500/[0.06] border-amber-500/20 hover:bg-amber-500/[0.1]'
+              : 'bg-indigo-500/[0.06] border-indigo-500/20 hover:bg-indigo-500/[0.1]'
+          }`}
+          onClick={isFreeLimitReached ? () => setShowLimitModal(true) : undefined}
+        >
           <div className="flex items-start gap-3">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
               isFreeLimitReached ? 'bg-amber-500/15' : 'bg-indigo-500/15'
             }`}>
               <Lock className={`w-4 h-4 ${isFreeLimitReached ? 'text-amber-400' : 'text-indigo-400'}`} />
             </div>
-            <div>
+            <div className="flex-1">
               <p className={`text-sm font-semibold ${isFreeLimitReached ? 'text-amber-300' : 'text-white'}`}>
                 {isFreeLimitReached ? 'Free Plan Limit Reached' : 'Free Plan'}
               </p>
               <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
                 {isFreeLimitReached
-                  ? `You've used your ${planUsage.maxProcessedLeads} free lead. Upgrade to Pro for unlimited processing.`
+                  ? `You've used your ${planUsage.maxProcessedLeads} free lead. Click to learn about upgrading.`
                   : `${planUsage.remaining} of ${planUsage.maxProcessedLeads} free lead remaining. You can import multiple leads but only ${planUsage.maxProcessedLeads} will be processed.`
                 }
               </p>
             </div>
+            {isFreeLimitReached && <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-1" />}
           </div>
         </div>
       )}
+
+      {/* Plan Limit Modal */}
+      <Modal open={showLimitModal} onClose={() => setShowLimitModal(false)}>
+        <ModalHeader
+          icon={<Lock className="w-5 h-5 text-amber-400" />}
+          iconBg="bg-amber-500/10"
+          title="Free Plan Limit Reached"
+          subtitle="You've reached your free plan quota"
+        />
+        <ModalBody>
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-[var(--color-text-muted)]">Solutions Created</span>
+                <span className="text-xs font-bold text-white">{planUsage?.processedLeads ?? 0} / {planUsage?.maxProcessedLeads ?? 1}</span>
+              </div>
+              <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="h-full w-full rounded-full bg-amber-500" />
+              </div>
+            </div>
+
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              The <span className="text-white font-medium">Free plan</span> allows <span className="text-white font-medium">1 AI Agent or Website solution</span>. Upgrade to <span className="text-indigo-400 font-medium">Pro</span> for unlimited leads, deployments, and premium AI models.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/20 text-center">
+                <Rocket className="w-4 h-4 text-indigo-400 mx-auto mb-1.5" />
+                <p className="text-[11px] text-[var(--color-text-muted)]">Unlimited Deploys</p>
+              </div>
+              <div className="p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/20 text-center">
+                <Sparkles className="w-4 h-4 text-indigo-400 mx-auto mb-1.5" />
+                <p className="text-[11px] text-[var(--color-text-muted)]">Premium AI</p>
+              </div>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <button
+            onClick={() => setShowLimitModal(false)}
+            className="px-4 py-2 text-xs text-[var(--color-text-muted)] hover:text-white transition-colors"
+          >
+            Maybe Later
+          </button>
+          <button
+            onClick={() => setShowLimitModal(false)}
+            className="px-5 py-2 gradient-primary text-white text-xs font-medium rounded-xl hover:opacity-90 shadow-lg shadow-indigo-500/20 transition-opacity"
+          >
+            Upgrade to Pro — $29/mo
+          </button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Missing Integration Modal */}
+      <Modal open={showIntegrationModal} onClose={() => setShowIntegrationModal(false)}>
+        <ModalHeader
+          icon={<AlertTriangle className="w-5 h-5 text-amber-400" />}
+          iconBg="bg-amber-500/10"
+          title="Integrations Required"
+          subtitle="Connect Vercel & GitHub to auto-deploy solutions"
+        />
+        <ModalBody>
+          <div className="space-y-3">
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              To automatically deploy generated AI Agents and Websites, you need to connect your <span className="text-white font-medium">Vercel</span> and <span className="text-white font-medium">GitHub</span> accounts in Settings.
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border)]">
+                <Globe className="w-4 h-4 text-[var(--color-text-muted)]" />
+                <span className="text-xs text-[var(--color-text-secondary)] flex-1">Vercel Token</span>
+                <span className="text-[11px] text-amber-400 font-medium">Not connected</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border)]">
+                <Bot className="w-4 h-4 text-[var(--color-text-muted)]" />
+                <span className="text-xs text-[var(--color-text-secondary)] flex-1">GitHub Token</span>
+                <span className="text-[11px] text-amber-400 font-medium">Not connected</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-[var(--color-text-muted)]">
+              Without these, solutions will still be generated but won't be deployed.
+            </p>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <button
+            onClick={() => setShowIntegrationModal(false)}
+            className="px-4 py-2 text-xs text-[var(--color-text-muted)] hover:text-white transition-colors"
+          >
+            Skip for Now
+          </button>
+          <Link
+            to="/dashboard/settings"
+            onClick={() => setShowIntegrationModal(false)}
+            className="px-5 py-2 gradient-primary text-white text-xs font-medium rounded-xl hover:opacity-90 shadow-lg shadow-indigo-500/20 transition-opacity inline-flex items-center gap-1.5"
+          >
+            Go to Settings
+          </Link>
+        </ModalFooter>
+      </Modal>
 
       {/* Step indicator */}
       <div className="flex items-center gap-3 mb-8">

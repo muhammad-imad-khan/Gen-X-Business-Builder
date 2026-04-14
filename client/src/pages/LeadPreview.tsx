@@ -5,7 +5,9 @@ import {
   ArrowLeft, Bot, Globe, Mail, BarChart3, Target, AlertCircle,
   Lightbulb, Users, Wrench, BookOpen, MessageSquare, CheckCircle,
   MapPin, Phone, Star, Copy, CheckCheck, Rocket, ExternalLink, Github,
+  Lock, Sparkles, AlertTriangle,
 } from 'lucide-react';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../components/Modal';
 
 export default function LeadPreview() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +18,9 @@ export default function LeadPreview() {
   const [deployment, setDeployment] = useState<Deployment | null>(null);
   const [activeTab, setActiveTab] = useState<'insights' | 'solution' | 'outreach'>('insights');
   const [loading, setLoading] = useState(true);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showIntegrationModal, setShowIntegrationModal] = useState(false);
+  const [planUsage, setPlanUsage] = useState<{ plan: string; canDeploy: boolean; deploymentCount: number; maxDeployments: number } | null>(null);
 
   const fetchData = async () => {
     if (!id) return;
@@ -38,6 +43,10 @@ export default function LeadPreview() {
     const stop = startPolling(fetchData, 4000);
     return stop;
   }, [id]);
+
+  useEffect(() => {
+    api.getPlanUsage().then(setPlanUsage).catch(() => {});
+  }, []);
 
   if (loading) return <LeadPreviewSkeleton />;
   if (!lead) return (
@@ -89,6 +98,117 @@ export default function LeadPreview() {
 
       {/* Deployment Banner */}
       {deployment && <DeploymentBanner deployment={deployment} />}
+
+      {/* Deployment Skipped Banner — show when lead is completed but no deployment exists */}
+      {!deployment && lead.status === 'COMPLETED' && planUsage && (
+        <div
+          className="glass-card p-4 border-l-2 border-l-amber-500 cursor-pointer hover:bg-white/[0.02] transition-colors"
+          onClick={() => {
+            if (planUsage.plan === 'free' && !planUsage.canDeploy) setShowLimitModal(true);
+            else setShowIntegrationModal(true);
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/10 shrink-0">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-amber-300">Deployment Skipped</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                {planUsage.plan === 'free' && !planUsage.canDeploy
+                  ? 'Free plan deployment limit reached. Click to learn more.'
+                  : 'Vercel & GitHub integration required for auto-deploy. Click to configure.'}
+              </p>
+            </div>
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          </div>
+        </div>
+      )}
+
+      {/* Plan Limit Modal */}
+      <Modal open={showLimitModal} onClose={() => setShowLimitModal(false)}>
+        <ModalHeader
+          icon={<Lock className="w-5 h-5 text-amber-400" />}
+          iconBg="bg-amber-500/10"
+          title="Deployment Limit Reached"
+          subtitle="Free plan allows 1 deployment"
+        />
+        <ModalBody>
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-[var(--color-text-muted)]">Deployments Used</span>
+                <span className="text-xs font-bold text-white">{planUsage?.deploymentCount ?? 0} / {planUsage?.maxDeployments ?? 1}</span>
+              </div>
+              <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="h-full w-full rounded-full bg-amber-500" />
+              </div>
+            </div>
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              Your solution was generated successfully but couldn't be auto-deployed. Upgrade to <span className="text-indigo-400 font-medium">Pro</span> for unlimited deployments.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/20 text-center">
+                <Rocket className="w-4 h-4 text-indigo-400 mx-auto mb-1.5" />
+                <p className="text-[11px] text-[var(--color-text-muted)]">Unlimited Deploys</p>
+              </div>
+              <div className="p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/20 text-center">
+                <Sparkles className="w-4 h-4 text-indigo-400 mx-auto mb-1.5" />
+                <p className="text-[11px] text-[var(--color-text-muted)]">Premium AI</p>
+              </div>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <button onClick={() => setShowLimitModal(false)} className="px-4 py-2 text-xs text-[var(--color-text-muted)] hover:text-white transition-colors">
+            Maybe Later
+          </button>
+          <button onClick={() => setShowLimitModal(false)} className="px-5 py-2 gradient-primary text-white text-xs font-medium rounded-xl hover:opacity-90 shadow-lg shadow-indigo-500/20 transition-opacity">
+            Upgrade to Pro — $29/mo
+          </button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Missing Integration Modal */}
+      <Modal open={showIntegrationModal} onClose={() => setShowIntegrationModal(false)}>
+        <ModalHeader
+          icon={<AlertTriangle className="w-5 h-5 text-amber-400" />}
+          iconBg="bg-amber-500/10"
+          title="Integrations Required"
+          subtitle="Connect Vercel & GitHub for auto-deploy"
+        />
+        <ModalBody>
+          <div className="space-y-3">
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              Your solution was generated but not deployed. Connect your <span className="text-white font-medium">Vercel</span> and <span className="text-white font-medium">GitHub</span> accounts to enable auto-deployment.
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border)]">
+                <Globe className="w-4 h-4 text-[var(--color-text-muted)]" />
+                <span className="text-xs text-[var(--color-text-secondary)] flex-1">Vercel Token</span>
+                <span className="text-[11px] text-amber-400 font-medium">Not connected</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border)]">
+                <Github className="w-4 h-4 text-[var(--color-text-muted)]" />
+                <span className="text-xs text-[var(--color-text-secondary)] flex-1">GitHub Token</span>
+                <span className="text-[11px] text-amber-400 font-medium">Not connected</span>
+              </div>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <button onClick={() => setShowIntegrationModal(false)} className="px-4 py-2 text-xs text-[var(--color-text-muted)] hover:text-white transition-colors">
+            Skip for Now
+          </button>
+          <Link
+            to="/dashboard/settings"
+            onClick={() => setShowIntegrationModal(false)}
+            className="px-5 py-2 gradient-primary text-white text-xs font-medium rounded-xl hover:opacity-90 shadow-lg shadow-indigo-500/20 transition-opacity inline-flex items-center gap-1.5"
+          >
+            Go to Settings
+          </Link>
+        </ModalFooter>
+      </Modal>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-[var(--color-surface-raised)] p-1 rounded-xl border border-[var(--color-border)]">

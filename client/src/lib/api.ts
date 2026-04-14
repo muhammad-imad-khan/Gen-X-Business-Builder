@@ -237,7 +237,7 @@ export const api = {
 
   // Plan usage
   getPlanUsage: () =>
-    request<{ plan: string; label: string; maxProcessedLeads: number; processedLeads: number; canProcess: boolean; remaining: number }>('/auth/me/usage'),
+    request<{ plan: string; label: string; maxProcessedLeads: number; processedLeads: number; canProcess: boolean; remaining: number; maxDeployments: number; deploymentCount: number; canDeploy: boolean }>('/auth/me/usage'),
   createCategory: (data: { name: string; color?: string }) =>
     request<Category>('/categories', {
       method: 'POST',

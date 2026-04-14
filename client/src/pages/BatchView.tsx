@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api, startPolling, startBatchProcessor } from '../lib/api';
-import { Play, ArrowLeft, CheckCircle, Clock, Loader, AlertTriangle, RotateCcw, Bot, Globe, ArrowRight, Lock } from 'lucide-react';
+import { Play, ArrowLeft, CheckCircle, Clock, Loader, AlertTriangle, RotateCcw, Bot, Globe, ArrowRight, Lock, Rocket, Sparkles } from 'lucide-react';
+import Modal, { ModalHeader, ModalBody, ModalFooter } from '../components/Modal';
 
 interface BatchDetail {
   id: string;
@@ -31,6 +32,7 @@ export default function BatchView() {
   const [starting, setStarting] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   const fetchData = async () => {
     if (!id) return;
@@ -63,6 +65,7 @@ export default function BatchView() {
     } catch (err: any) {
       if (err.message?.includes('Free plan limit') || err.message?.includes('PLAN_LIMIT_REACHED')) {
         setPlanError(err.message);
+        setShowLimitModal(true);
       } else {
         console.error(err);
       }
@@ -83,6 +86,7 @@ export default function BatchView() {
     } catch (err: any) {
       if (err.message?.includes('Free plan limit') || err.message?.includes('PLAN_LIMIT_REACHED')) {
         setPlanError(err.message);
+        setShowLimitModal(true);
       } else {
         console.error(err);
       }
@@ -144,20 +148,73 @@ export default function BatchView() {
 
       {/* Plan limit warning */}
       {planError && (
-        <div className="mb-5 p-4 rounded-xl border bg-amber-500/[0.06] border-amber-500/20 animate-fade-in">
+        <div className="mb-5 p-4 rounded-xl border bg-amber-500/[0.06] border-amber-500/20 animate-fade-in cursor-pointer" onClick={() => setShowLimitModal(true)}>
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/15">
               <Lock className="w-4 h-4 text-amber-400" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-semibold text-amber-300">Free Plan Limit Reached</p>
               <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                {planError}
+                You've used your free plan quota. Click to learn more.
               </p>
             </div>
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-1" />
           </div>
         </div>
       )}
+
+      {/* Plan Limit Modal */}
+      <Modal open={showLimitModal} onClose={() => setShowLimitModal(false)}>
+        <ModalHeader
+          icon={<Lock className="w-5 h-5 text-amber-400" />}
+          iconBg="bg-amber-500/10"
+          title="Free Plan Limit Reached"
+          subtitle="You've reached your free plan quota"
+        />
+        <ModalBody>
+          <div className="space-y-4">
+            <div className="p-3.5 rounded-xl bg-[var(--color-surface-overlay)] border border-[var(--color-border)]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-[var(--color-text-muted)]">Solutions Created</span>
+                <span className="text-xs font-bold text-white">1 / 1</span>
+              </div>
+              <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="h-full w-full rounded-full bg-amber-500" />
+              </div>
+            </div>
+
+            <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              The <span className="text-white font-medium">Free plan</span> allows you to create and deploy <span className="text-white font-medium">1 AI Agent or Website solution</span>. Upgrade to <span className="text-indigo-400 font-medium">Pro</span> for unlimited leads, deployments, and premium AI models.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/20 text-center">
+                <Rocket className="w-4 h-4 text-indigo-400 mx-auto mb-1.5" />
+                <p className="text-[11px] text-[var(--color-text-muted)]">Unlimited Deploys</p>
+              </div>
+              <div className="p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/20 text-center">
+                <Sparkles className="w-4 h-4 text-indigo-400 mx-auto mb-1.5" />
+                <p className="text-[11px] text-[var(--color-text-muted)]">Premium AI</p>
+              </div>
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <button
+            onClick={() => setShowLimitModal(false)}
+            className="px-4 py-2 text-xs text-[var(--color-text-muted)] hover:text-white transition-colors"
+          >
+            Maybe Later
+          </button>
+          <button
+            onClick={() => setShowLimitModal(false)}
+            className="px-5 py-2 gradient-primary text-white text-xs font-medium rounded-xl hover:opacity-90 shadow-lg shadow-indigo-500/20 transition-opacity"
+          >
+            Upgrade to Pro — $29/mo
+          </button>
+        </ModalFooter>
+      </Modal>
 
       {/* Progress Card */}
       <div className="glass-card p-5 mb-5">

@@ -3,12 +3,13 @@ import { prisma } from './prisma';
 // ─── Plan Definitions ──────────────────────────────────────────
 export interface PlanLimits {
   maxProcessedLeads: number;   // max leads that can be processed (COMPLETED + in-flight)
+  maxDeployments: number;      // max deployments allowed
   label: string;
 }
 
 const PLANS: Record<string, PlanLimits> = {
-  free: { maxProcessedLeads: 1, label: 'Free' },
-  pro:  { maxProcessedLeads: Infinity, label: 'Pro' },
+  free: { maxProcessedLeads: 1, maxDeployments: 1, label: 'Free' },
+  pro:  { maxProcessedLeads: Infinity, maxDeployments: Infinity, label: 'Pro' },
 };
 
 export function getPlanLimits(plan: string): PlanLimits {
@@ -23,6 +24,9 @@ export interface PlanUsage {
   processedLeads: number;
   canProcess: boolean;
   remaining: number;
+  maxDeployments: number;
+  deploymentCount: number;
+  canDeploy: boolean;
 }
 
 /**
@@ -47,6 +51,19 @@ export async function getPlanUsage(userId: string): Promise<PlanUsage> {
     },
   });
 
+  // Count existing deployments (non-failed)
+  let deploymentCount = 0;
+  try {
+    deploymentCount = await prisma.deployment.count({
+      where: {
+        lead: { userId },
+        status: { in: ['PENDING', 'DEPLOYING', 'DEPLOYED'] },
+      },
+    });
+  } catch {
+    // deployment model may not be available
+  }
+
   const remaining = Math.max(0, limits.maxProcessedLeads - processedLeads);
 
   return {
@@ -56,6 +73,9 @@ export async function getPlanUsage(userId: string): Promise<PlanUsage> {
     processedLeads,
     canProcess: processedLeads < limits.maxProcessedLeads,
     remaining,
+    maxDeployments: limits.maxDeployments,
+    deploymentCount,
+    canDeploy: deploymentCount < limits.maxDeployments,
   };
 }
 
