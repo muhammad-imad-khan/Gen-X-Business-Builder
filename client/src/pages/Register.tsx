@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
 import Logo from '../components/Logo';
+import RocketScene from '../components/RocketScene';
 
 export default function Register() {
   const { register } = useAuth();
@@ -11,9 +12,15 @@ export default function Register() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [launching, setLaunching] = useState(false);
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const handleLaunchComplete = () => {
+    sessionStorage.setItem('genx_just_registered', '1');
+    navigate('/welcome', { replace: true });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +33,8 @@ export default function Register() {
         password: form.password,
         company: form.company || undefined,
       });
-      // Flag so GuestRoute redirects to /welcome instead of /dashboard
-      sessionStorage.setItem('genx_just_registered', '1');
-      navigate('/welcome', { replace: true });
+      // Trigger launch animation, then navigate on completion
+      setLaunching(true);
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -38,8 +44,11 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface)]">
+      {/* Rocket Background with launch support */}
+      <RocketScene fullPage mode="ambient" launching={launching} onLaunchComplete={handleLaunchComplete} />
+
       {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-[var(--color-surface)]/80 backdrop-blur-xl border-b border-[var(--color-border)]">
+      <nav className="fixed top-0 w-full z-50 bg-[var(--color-surface)]/60 backdrop-blur-xl border-b border-[var(--color-border)]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
             <Logo size="md" />
@@ -56,7 +65,7 @@ export default function Register() {
         </div>
       </nav>
 
-      <div className="flex items-center justify-center min-h-screen pt-16 px-4">
+      <div className="relative z-10 flex items-center justify-center min-h-screen pt-16 px-4">
       <div className="w-full max-w-md animate-fade-in">
         {/* Brand */}
         <div className="text-center mb-8">

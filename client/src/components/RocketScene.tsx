@@ -1,28 +1,44 @@
 import { useEffect, useRef } from 'react';
 
 interface RocketSceneProps {
-  /** 0 = top of page, 1 = scrolled far down. Rocket flies up as this increases. */
   scrollProgress?: number;
-  /** When true, renders as a fixed full-viewport background layer */
   fullPage?: boolean;
+  mode?: 'single' | 'dual' | 'ambient';
+  launching?: boolean;
+  onLaunchComplete?: () => void;
 }
 
-/**
- * Animated rocket scene with flames, smoke, particles, stars, and orbit rings.
- * Canvas-based for smooth 60fps performance. Scroll-driven position.
- */
-export default function RocketScene({ scrollProgress = 0, fullPage = false }: RocketSceneProps) {
+export default function RocketScene({
+  scrollProgress = 0,
+  fullPage = false,
+  mode = 'single',
+  launching = false,
+  onLaunchComplete,
+}: RocketSceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scrollRef = useRef(0);
   const scrollVelRef = useRef(0);
   const prevScrollRef = useRef(0);
+  const launchRef = useRef(false);
+  const launchTimeRef = useRef(0);
+  const launchDoneRef = useRef(false);
+  const onLaunchCompleteRef = useRef(onLaunchComplete);
 
-  // Update scroll ref smoothly
+  useEffect(() => { onLaunchCompleteRef.current = onLaunchComplete; }, [onLaunchComplete]);
+
   useEffect(() => {
     scrollVelRef.current = scrollProgress - prevScrollRef.current;
     prevScrollRef.current = scrollProgress;
     scrollRef.current = scrollProgress;
   }, [scrollProgress]);
+
+  useEffect(() => {
+    if (launching && !launchRef.current) {
+      launchRef.current = true;
+      launchTimeRef.current = 0;
+      launchDoneRef.current = false;
+    }
+  }, [launching]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -288,6 +304,46 @@ export default function RocketScene({ scrollProgress = 0, fullPage = false }: Ro
       ctx.restore();
     };
 
+    const drawFlame = (cx: number, nozzleY: number, scale: number, boost: number) => {
+      const fm = 1 + boost * 2.5;
+      const fh = (18 + Math.sin(time * 20) * 6) * fm;
+      const fw = (8 + Math.sin(time * 15) * 3) * (1 + boost * 1.2);
+      const fg = ctx.createRadialGradient(cx, nozzleY + fh * 0.3, 2, cx, nozzleY + fh * 0.5, fh * scale);
+      fg.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+      fg.addColorStop(0.2, 'rgba(251, 191, 36, 0.8)');
+      fg.addColorStop(0.5, 'rgba(249, 115, 22, 0.6)');
+      fg.addColorStop(0.8, 'rgba(99, 102, 241, 0.3)');
+      fg.addColorStop(1, 'rgba(99, 102, 241, 0)');
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx - fw * scale * 0.5, nozzleY);
+      ctx.quadraticCurveTo(cx, nozzleY + fh * scale * 1.2, cx + fw * scale * 0.5, nozzleY);
+      ctx.fillStyle = fg;
+      ctx.fill();
+      ctx.restore();
+    };
+
+    const drawSpeedLines = (cx: number, nozzleY: number, scale: number, boost: number) => {
+      const cnt = 6 + Math.floor(boost * 10);
+      const spd = 80 + boost * 200;
+      for (let i = 0; i < cnt; i++) {
+        const spread = (30 + i * 8) * scale;
+        const lx = cx + (i % 2 === 0 ? -1 : 1) * spread;
+        const ly = nozzleY + 20 + ((time * spd + i * 30) % (120 + boost * 80));
+        const la = Math.max(0, 1 - (ly - nozzleY - 20) / (100 + boost * 60));
+        const ll = 15 + boost * 25 + Math.random() * 10;
+        ctx.save();
+        ctx.globalAlpha = la * (0.3 + boost * 0.4);
+        ctx.strokeStyle = boost > 0.5 ? '#818cf8' : '#6366f1';
+        ctx.lineWidth = 1 + boost;
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.lineTo(lx, ly + ll);
+        ctx.stroke();
+        ctx.restore();
+      }
+    };
+
     const animate = () => {
       const w = W();
       const h = H();
@@ -304,157 +360,235 @@ export default function RocketScene({ scrollProgress = 0, fullPage = false }: Ro
         ctx.fill();
       });
 
-      const cx = w / 2;
-      // Scroll drives rocket position: 0 = center, 1 = launched to top
-      const sp = scrollRef.current;
-      const vel = scrollVelRef.current;
-      const scrollOffset = sp * h * 0.6; // rocket rises up to 60% of canvas height
-      const baseY = h * 0.45;
-      const hoverAmt = Math.sin(time * 1.5) * (10 - sp * 8); // less hover when flying
-      const rocketCy = baseY - scrollOffset + hoverAmt;
-      const rocketScale = Math.min(w / 300, 1.2);
-      // Tilt rocket slightly based on scroll velocity
-      const tilt = Math.max(-0.15, Math.min(0.15, vel * -8));
-
-      // Draw orbit rings (behind rocket) — fade out as rocket flies away
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, 0.1 * (1 - sp * 1.5));
-      ctx.strokeStyle = '#6366f1';
-      ctx.lineWidth = 1;
-      [100, 130, 160].forEach((r) => {
-        ctx.beginPath();
-        ctx.ellipse(cx, rocketCy, r * rocketScale, r * rocketScale * 0.3, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-      ctx.restore();
-
-      // Draw orbiting dots
-      orbitDots.forEach((d) => {
-        d.angle += d.speed;
-        const ox = cx + Math.cos(d.angle) * d.radius * rocketScale;
-        const oy = rocketCy + Math.sin(d.angle) * d.radius * 0.3 * rocketScale;
-        ctx.beginPath();
-        ctx.arc(ox, oy, d.size * rocketScale * 0.6, 0, Math.PI * 2);
-        ctx.fillStyle = d.color;
-        ctx.globalAlpha = 0.7;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      });
-
-      // Draw floating shapes
-      floatingShapes.forEach((s) => {
-        s.angle += s.speed;
-        const sx = cx + Math.cos(s.angle) * s.radius * rocketScale;
-        const sy = rocketCy + Math.sin(s.angle) * s.radius * 0.4 * rocketScale;
-        drawShape(sx, sy, s.shape, s.size * rocketScale, s.color, 0.4 + 0.2 * Math.sin(time * 2));
-      });
-
-      // Draw rocket with scroll tilt
-      ctx.save();
-      ctx.translate(cx, rocketCy);
-      ctx.rotate(tilt);
-      ctx.translate(-cx, -rocketCy);
-      const nozzleY = drawRocket(cx, rocketCy, rocketScale);
-      ctx.restore();
-
-      // Spawn exhaust particles — more when scrolling (boosting)
-      const boostFactor = Math.min(1, sp * 3);
-      spawnParticles(cx, rocketCy, nozzleY);
-      // Extra particles when boosting
-      if (boostFactor > 0.1) {
-        for (let b = 0; b < Math.floor(boostFactor * 5); b++) {
-          spawnParticles(cx, rocketCy, nozzleY);
+      // Launch progress
+      let launchProg = 0;
+      if (launchRef.current) {
+        launchTimeRef.current += 0.016;
+        launchProg = Math.min(1, launchTimeRef.current / 2.5);
+        if (launchProg >= 1 && !launchDoneRef.current) {
+          launchDoneRef.current = true;
+          onLaunchCompleteRef.current?.();
         }
       }
 
-      // Draw main flame — bigger when boosting
-      const flameBoost = 1 + boostFactor * 2.5;
-      const flameH = (18 + Math.sin(time * 20) * 6) * flameBoost;
-      const flameW = (8 + Math.sin(time * 15) * 3) * (1 + boostFactor * 1.2);
-      const flameGrad = ctx.createRadialGradient(cx, nozzleY + flameH * 0.3, 2, cx, nozzleY + flameH * 0.5, flameH * rocketScale);
-      flameGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-      flameGrad.addColorStop(0.2, 'rgba(251, 191, 36, 0.8)');
-      flameGrad.addColorStop(0.5, 'rgba(249, 115, 22, 0.6)');
-      flameGrad.addColorStop(0.8, 'rgba(99, 102, 241, 0.3)');
-      flameGrad.addColorStop(1, 'rgba(99, 102, 241, 0)');
+      if (mode === 'single') {
+        // --- SINGLE ROCKET (original behavior) ---
+        const cx = w / 2;
+        const sp = scrollRef.current;
+        const vel = scrollVelRef.current;
+        const scrollOffset = sp * h * 0.6;
+        const baseY = h * 0.45;
+        const hoverAmt = Math.sin(time * 1.5) * (10 - sp * 8);
+        const rocketCy = baseY - scrollOffset + hoverAmt;
+        const rScale = Math.min(w / 300, 1.2);
+        const tilt = Math.max(-0.15, Math.min(0.15, vel * -8));
 
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(cx - flameW * rocketScale * 0.5, nozzleY);
-      ctx.quadraticCurveTo(cx, nozzleY + flameH * rocketScale * 1.2, cx + flameW * rocketScale * 0.5, nozzleY);
-      ctx.fillStyle = flameGrad;
-      ctx.fill();
-      ctx.restore();
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 0.1 * (1 - sp * 1.5));
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 1;
+        [100, 130, 160].forEach((r) => {
+          ctx.beginPath();
+          ctx.ellipse(cx, rocketCy, r * rScale, r * rScale * 0.3, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+        ctx.restore();
 
-      // Update & draw particles
+        orbitDots.forEach((d) => {
+          d.angle += d.speed;
+          const ox = cx + Math.cos(d.angle) * d.radius * rScale;
+          const oy = rocketCy + Math.sin(d.angle) * d.radius * 0.3 * rScale;
+          ctx.beginPath();
+          ctx.arc(ox, oy, d.size * rScale * 0.6, 0, Math.PI * 2);
+          ctx.fillStyle = d.color;
+          ctx.globalAlpha = 0.7;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+
+        floatingShapes.forEach((s) => {
+          s.angle += s.speed;
+          const sx = cx + Math.cos(s.angle) * s.radius * rScale;
+          const sy = rocketCy + Math.sin(s.angle) * s.radius * 0.4 * rScale;
+          drawShape(sx, sy, s.shape, s.size * rScale, s.color, 0.4 + 0.2 * Math.sin(time * 2));
+        });
+
+        ctx.save();
+        ctx.translate(cx, rocketCy);
+        ctx.rotate(tilt);
+        ctx.translate(-cx, -rocketCy);
+        const nozzleY = drawRocket(cx, rocketCy, rScale);
+        ctx.restore();
+
+        const boost = Math.min(1, sp * 3);
+        spawnParticles(cx, rocketCy, nozzleY);
+        if (boost > 0.1) {
+          for (let b = 0; b < Math.floor(boost * 5); b++) spawnParticles(cx, rocketCy, nozzleY);
+        }
+        drawFlame(cx, nozzleY, rScale, boost);
+        drawSpeedLines(cx, nozzleY, rScale, boost);
+        if (boost > 0.3) {
+          stars.forEach((s) => {
+            ctx.save();
+            ctx.globalAlpha = 0.3 * boost;
+            ctx.strokeStyle = '#a5b4fc';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(s.x * w, s.y * h);
+            ctx.lineTo(s.x * w, s.y * h + boost * 8);
+            ctx.stroke();
+            ctx.restore();
+          });
+        }
+
+      } else if (mode === 'dual') {
+        // --- DUAL CROSSING ROCKETS ---
+        const sp = scrollRef.current;
+        const vel = scrollVelRef.current;
+        const hv1 = Math.sin(time * 1.5) * (8 - sp * 6);
+        const hv2 = Math.sin(time * 1.5 + 1) * (8 - sp * 6);
+        const ds = Math.min(w / 400, 0.95);
+        const boost = Math.min(1, sp * 3);
+
+        // Left rocket: bottom-left → upper-right
+        const lx = w * 0.2 + sp * w * 0.6;
+        const ly = h * 0.72 - sp * h * 0.9 + hv1;
+        // Right rocket: bottom-right → upper-left
+        const rx = w * 0.8 - sp * w * 0.6;
+        const ry = h * 0.72 - sp * h * 0.9 + hv2;
+
+        // Tilt toward travel direction
+        const lt = 0.2 - sp * 0.05 + Math.max(-0.1, Math.min(0.1, vel * -4));
+        const rt = -0.2 + sp * 0.05 + Math.max(-0.1, Math.min(0.1, vel * -4));
+
+        ctx.save();
+        ctx.translate(lx, ly);
+        ctx.rotate(lt);
+        ctx.translate(-lx, -ly);
+        const lNoz = drawRocket(lx, ly, ds);
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(rx, ry);
+        ctx.rotate(rt);
+        ctx.translate(-rx, -ry);
+        const rNoz = drawRocket(rx, ry, ds);
+        ctx.restore();
+
+        drawFlame(lx, lNoz, ds, boost);
+        drawFlame(rx, rNoz, ds, boost);
+        spawnParticles(lx, ly, lNoz);
+        spawnParticles(rx, ry, rNoz);
+        if (boost > 0.1) {
+          for (let b = 0; b < Math.floor(boost * 3); b++) {
+            spawnParticles(lx, ly, lNoz);
+            spawnParticles(rx, ry, rNoz);
+          }
+        }
+        drawSpeedLines(lx, lNoz, ds, boost * 0.7);
+        drawSpeedLines(rx, rNoz, ds, boost * 0.7);
+        if (boost > 0.3) {
+          stars.forEach((s) => {
+            ctx.save();
+            ctx.globalAlpha = 0.3 * boost;
+            ctx.strokeStyle = '#a5b4fc';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(s.x * w, s.y * h);
+            ctx.lineTo(s.x * w, s.y * h + boost * 8);
+            ctx.stroke();
+            ctx.restore();
+          });
+        }
+
+      } else if (mode === 'ambient') {
+        // --- AMBIENT (auth pages) with launch support ---
+        const lp = launchProg;
+        const le = lp * lp * lp; // ease-in cubic
+        const lo = le * h * 1.5; // vertical launch offset
+        const lb = lp * lp;
+        const as = Math.min(w / 400, 0.85);
+        const hv1 = Math.sin(time * 0.8) * 15;
+        const hv2 = Math.sin(time * 0.8 + Math.PI * 0.7) * 15;
+        const sw1 = Math.sin(time * 0.5) * 10;
+        const sw2 = Math.sin(time * 0.5 + Math.PI) * 10;
+
+        const alx = w * 0.3 + sw1;
+        const aly = h * 0.55 + hv1 - lo;
+        const arx = w * 0.7 + sw2;
+        const ary = h * 0.55 + hv2 - lo;
+        const alt = Math.sin(time * 0.3) * 0.05;
+        const art = Math.sin(time * 0.3 + Math.PI) * 0.05;
+
+        // Flash during launch
+        if (lp > 0.05 && lp < 0.4) {
+          ctx.save();
+          ctx.fillStyle = `rgba(99, 102, 241, ${Math.sin(lp / 0.4 * Math.PI) * 0.15})`;
+          ctx.fillRect(0, 0, w, h);
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.translate(alx, aly);
+        ctx.rotate(alt);
+        ctx.translate(-alx, -aly);
+        const alNoz = drawRocket(alx, aly, as);
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(arx, ary);
+        ctx.rotate(art);
+        ctx.translate(-arx, -ary);
+        const arNoz = drawRocket(arx, ary, as);
+        ctx.restore();
+
+        const ab = 0.2 + lb * 3;
+        drawFlame(alx, alNoz, as, ab);
+        drawFlame(arx, arNoz, as, ab);
+        spawnParticles(alx, aly, alNoz);
+        spawnParticles(arx, ary, arNoz);
+        if (lb > 0.1) {
+          for (let b = 0; b < Math.floor(lb * 8); b++) {
+            spawnParticles(alx, aly, alNoz);
+            spawnParticles(arx, ary, arNoz);
+          }
+        }
+        if (lp > 0.1) {
+          drawSpeedLines(alx, alNoz, as, lb);
+          drawSpeedLines(arx, arNoz, as, lb);
+        }
+        if (lp > 0.2) {
+          stars.forEach((s) => {
+            ctx.save();
+            ctx.globalAlpha = 0.4 * lb;
+            ctx.strokeStyle = '#a5b4fc';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(s.x * w, s.y * h);
+            ctx.lineTo(s.x * w, s.y * h + lb * 20);
+            ctx.stroke();
+            ctx.restore();
+          });
+        }
+      }
+
+      // Shared: update & draw particles
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
         p.life -= p.type === 'flame' ? 0.04 : p.type === 'smoke' ? 0.015 : 0.03;
         p.size *= p.type === 'smoke' ? 1.02 : 0.97;
-
-        if (p.life <= 0) {
-          particles.splice(i, 1);
-          continue;
-        }
-
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
         ctx.save();
         ctx.globalAlpha = p.life * (p.type === 'smoke' ? 0.15 : p.type === 'spark' ? 0.9 : 0.6);
-
-        if (p.type === 'spark') {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = p.color;
-          ctx.fill();
-        } else {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = p.color;
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-
-      // Speed lines — more and faster when boosting
-      const lineCount = 6 + Math.floor(boostFactor * 10);
-      const lineSpeed = 80 + boostFactor * 200;
-      for (let i = 0; i < lineCount; i++) {
-        const spread = (30 + i * 8) * rocketScale;
-        const lx = cx + (i % 2 === 0 ? -1 : 1) * spread;
-        const ly = nozzleY + 20 + ((time * lineSpeed + i * 30) % (120 + boostFactor * 80));
-        const lAlpha = Math.max(0, 1 - (ly - nozzleY - 20) / (100 + boostFactor * 60));
-        const lineLen = 15 + boostFactor * 25 + Math.random() * 10;
-
-        ctx.save();
-        ctx.globalAlpha = lAlpha * (0.3 + boostFactor * 0.4);
-        ctx.strokeStyle = boostFactor > 0.5 ? '#818cf8' : '#6366f1';
-        ctx.lineWidth = 1 + boostFactor;
         ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(lx, ly + lineLen);
-        ctx.stroke();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
         ctx.restore();
       }
-
-      // Stars streak when boosting
-      if (boostFactor > 0.3) {
-        stars.forEach((s) => {
-          const streakLen = boostFactor * 8;
-          ctx.save();
-          ctx.globalAlpha = 0.3 * boostFactor;
-          ctx.strokeStyle = '#a5b4fc';
-          ctx.lineWidth = 0.8;
-          ctx.beginPath();
-          ctx.moveTo(s.x * w, s.y * h);
-          ctx.lineTo(s.x * w, s.y * h + streakLen);
-          ctx.stroke();
-          ctx.restore();
-        });
-      }
-
-      // Keep particles under control
-      while (particles.length > 200) particles.shift();
+      while (particles.length > 300) particles.shift();
 
       animationId = requestAnimationFrame(animate);
     };
@@ -465,7 +599,7 @@ export default function RocketScene({ scrollProgress = 0, fullPage = false }: Ro
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', resize);
     };
-  }, []);
+  }, [mode]);
 
   return fullPage ? (
     <div className="fixed inset-0 z-0 pointer-events-none">

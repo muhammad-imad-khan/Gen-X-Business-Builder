@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import Logo from '../components/Logo';
+import RocketScene from '../components/RocketScene';
 
 export default function Login() {
   const { login } = useAuth();
@@ -29,8 +30,10 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface)]">
+      {/* Rocket Background */}
+      <RocketScene fullPage mode="ambient" />
       {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-[var(--color-surface)]/80 backdrop-blur-xl border-b border-[var(--color-border)]">
+      <nav className="fixed top-0 w-full z-50 bg-[var(--color-surface)]/60 backdrop-blur-xl border-b border-[var(--color-border)]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
             <Logo size="md" />
@@ -47,7 +50,7 @@ export default function Login() {
         </div>
       </nav>
 
-      <div className="flex items-center justify-center min-h-screen pt-16 px-4">
+      <div className="relative z-10 flex items-center justify-center min-h-screen pt-16 px-4">
       <div className="w-full max-w-md animate-fade-in">
         {/* Brand */}
         <div className="text-center mb-8">
