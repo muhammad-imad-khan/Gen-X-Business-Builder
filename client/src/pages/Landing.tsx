@@ -153,10 +153,16 @@ export default function Landing() {
   const pricingRef = useStaggerReveal();
   const ctaRef = useStaggerReveal();
 
-  // Navbar scroll effect
+  // Navbar scroll effect + rocket scroll progress
   const [scrolled, setScrolled] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 20);
+      // Map scroll to 0–1 over the first ~1200px of scroll
+      setScrollProgress(Math.min(1, y / 1200));
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -284,7 +290,7 @@ export default function Landing() {
             <div
               className={`relative h-[340px] sm:h-[420px] lg:h-[520px] transition-all duration-1000 delay-500 ${heroVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
             >
-              <RocketScene />
+              <RocketScene scrollProgress={scrollProgress} />
 
               {/* Floating status badges around rocket */}
               <div className="absolute top-8 right-4 sm:top-12 sm:right-8 animate-float" style={{ animationDelay: '0s' }}>
