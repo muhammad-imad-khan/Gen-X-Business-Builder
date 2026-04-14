@@ -510,7 +510,7 @@ vi.mock('../server/src/lib/prisma', () => ({
 
 // Mock plan limits to allow unlimited processing in tests
 vi.mock('../server/src/lib/plan-limits', () => ({
-  getPlanLimits: (plan: string) => ({ maxProcessedLeads: Infinity, label: plan }),
+  getPlanLimits: (plan: string) => ({ maxProcessedLeads: Infinity, maxDeployments: Infinity, label: plan }),
   getPlanUsage: async () => ({
     plan: 'free',
     label: 'Free',
@@ -518,6 +518,9 @@ vi.mock('../server/src/lib/plan-limits', () => ({
     processedLeads: 0,
     canProcess: true,
     remaining: Infinity,
+    maxDeployments: Infinity,
+    deploymentCount: 0,
+    canDeploy: true,
   }),
   getAllowedProcessCount: async (_userId: string, requested: number) => requested,
 }));
@@ -606,7 +609,12 @@ vi.mock('../server/src/services/llm', () => ({
       },
     });
   },
-  generateText: async () => 'Subject: Quick idea for your business\n\nI noticed a few practical opportunities to improve your online conversion flow. If useful, I can share a short plan tailored to your business.',
+  generateText: async (_systemPrompt: string, userPrompt: string) => {
+    // Extract business name from the user prompt for personalized outreach
+    const nameMatch = userPrompt.match(/[-\s]Name:\s*(.+)/i);
+    const businessName = nameMatch ? nameMatch[1].trim() : 'your business';
+    return `Subject: Quick idea for ${businessName}\n\nI took a close look at ${businessName} and noticed a few practical opportunities to improve your online conversion flow. Your current setup is solid, but a few targeted changes could significantly boost how customers find and engage with you.\n\nIf useful, I can share a short plan tailored specifically to ${businessName}.\n\nBest regards,\n[Your Name], Solutions Architect at GenX`;
+  },
 }));
 
 let server: Server;
