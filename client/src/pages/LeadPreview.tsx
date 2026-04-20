@@ -235,8 +235,8 @@ export default function LeadPreview() {
       <div className="animate-fade-in">
         {activeTab === 'insights' && <InsightsPanel enrichment={enrichment} />}
         {activeTab === 'solution' && <SolutionPanel deliverables={deliverables} solutionType={lead.solutionType} />}
-        {activeTab === 'app' && <GeneratedAppPanel deliverables={deliverables} deployment={deployment} />}
-        {activeTab === 'outreach' && <OutreachPanel outreach={outreach} />}
+        {activeTab === 'app' && <GeneratedAppPanel deliverables={deliverables} deployment={deployment} leadId={lead.id} onUpdate={fetchData} planUsage={planUsage} onShowLimitModal={() => setShowLimitModal(true)} onShowIntegrationModal={() => setShowIntegrationModal(true)} />}
+        {activeTab === 'outreach' && <OutreachPanel outreach={outreach} deployment={deployment} leadId={lead.id} onUpdate={fetchData} />}
       </div>
     </div>
   );
@@ -514,10 +514,14 @@ function WebsiteView({ content }: { content: Record<string, any> }) {
   );
 }
 
-function GeneratedAppPanel({ deliverables, deployment }: { deliverables: Deliverable[]; deployment: Deployment | null }) {
+function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsage, onShowLimitModal, onShowIntegrationModal }: { deliverables: Deliverable[]; deployment: Deployment | null; leadId: string; onUpdate: () => void; planUsage: { plan: string; canDeploy: boolean; deploymentCount: number; maxDeployments: number } | null; onShowLimitModal: () => void; onShowIntegrationModal: () => void }) {
   const appDeliverable = deliverables.find(d => d.type === 'AI_AGENT_APP' || d.type === 'WEBSITE_APP');
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['src', 'src/app']));
+  const [deploying, setDeploying] = useState(false);
+  const [deployError, setDeployError] = useState<string | null>(null);
+  const [addingUrl, setAddingUrl] = useState(false);
+  const [urlAdded, setUrlAdded] = useState(false);
 
   if (!appDeliverable) {
     return <EmptyState message="Application code not yet generated. Processing may still be in progress." />;
@@ -529,6 +533,40 @@ function GeneratedAppPanel({ deliverables, deployment }: { deliverables: Deliver
 
   // Build folder tree
   const tree = buildFileTree(fileNames);
+
+  const handleDeploy = async () => {
+    if (!planUsage) return;
+    if (planUsage.plan === 'free' && !planUsage.canDeploy) { onShowLimitModal(); return; }
+    setDeploying(true);
+    setDeployError(null);
+    try {
+      await api.deployLead(leadId);
+      onUpdate();
+    } catch (err: any) {
+      if (err.message?.includes('not connected')) {
+        onShowIntegrationModal();
+      } else {
+        setDeployError(err.message || 'Deployment failed');
+      }
+    } finally {
+      setDeploying(false);
+    }
+  };
+
+  const handleAddUrlToEmail = async () => {
+    if (!deployment?.deployUrl) return;
+    setAddingUrl(true);
+    try {
+      await api.addUrlToOutreach(leadId, deployment.deployUrl);
+      setUrlAdded(true);
+      onUpdate();
+      setTimeout(() => setUrlAdded(false), 3000);
+    } catch {
+      // silently fail
+    } finally {
+      setAddingUrl(false);
+    }
+  };
 
   function toggleFolder(path: string) {
     setExpandedFolders(prev => {
@@ -605,15 +643,83 @@ function GeneratedAppPanel({ deliverables, deployment }: { deliverables: Deliver
           <span>{formatBytes(appDeliverable.content.totalSize)}</span>
           <span>Framework: {appDeliverable.content.framework}</span>
         </div>
-        {deployment?.deployUrl && (
-          <a
-            href={deployment.deployUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg gradient-primary text-white text-xs font-medium hover:shadow-lg hover:shadow-indigo-500/20 transition-all"
-          >
-            <ExternalLink className="w-3.5 h-3.5" /> View Live App
-          </a>
+
+        {/* Action Buttons */}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/* Deploy button — show when not yet deployed */}
+          {(!deployment || deployment.status === 'FAILED') && (
+            <button
+              onClick={handleDeploy}
+              disabled={deploying}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg gradient-primary text-white text-xs font-medium hover:shadow-lg hover:shadow-indigo-500/20 transition-all disabled:opacity-50"
+            >
+              <Rocket className="w-3.5 h-3.5" />
+              {deploying ? 'Deploying...' : 'Deploy to Vercel'}
+            </button>
+          )}
+
+          {/* Deploying spinner */}
+          {deployment?.status === 'DEPLOYING' && (
+            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-500/10 text-blue-400 text-xs font-medium">
+              <Rocket className="w-3.5 h-3.5 animate-pulse" /> Deploying...
+            </span>
+          )}
+
+          {/* Open Website — show when deployed */}
+          {deployment?.status === 'DEPLOYED' && deployment.deployUrl && (
+            <a
+              href={deployment.deployUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg gradient-primary text-white text-xs font-medium hover:shadow-lg hover:shadow-indigo-500/20 transition-all"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> Open Website
+            </a>
+          )}
+
+          {/* GitHub Repo */}
+          {deployment?.status === 'DEPLOYED' && deployment.repoUrl && (
+            <a
+              href={deployment.repoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--color-surface-overlay)] border border-[var(--color-border)] text-xs text-[var(--color-text-secondary)] hover:text-white hover:bg-white/[0.06] transition-all"
+            >
+              <Github className="w-3.5 h-3.5" /> Repo
+            </a>
+          )}
+
+          {/* Add URL to Email — show when deployed */}
+          {deployment?.status === 'DEPLOYED' && deployment.deployUrl && (
+            <button
+              onClick={handleAddUrlToEmail}
+              disabled={addingUrl}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                urlAdded
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'bg-[var(--color-surface-overlay)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-white hover:bg-white/[0.06]'
+              } disabled:opacity-50`}
+            >
+              <Mail className="w-3.5 h-3.5" />
+              {urlAdded ? 'URL Added to Email!' : addingUrl ? 'Adding...' : 'Add URL to Email'}
+            </button>
+          )}
+        </div>
+
+        {/* Deploy URL display */}
+        {deployment?.status === 'DEPLOYED' && deployment.deployUrl && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+            <Globe className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <a href={deployment.deployUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-400 hover:text-emerald-300 truncate transition-colors">
+              {deployment.deployUrl}
+            </a>
+            <CopyButton text={deployment.deployUrl} />
+          </div>
+        )}
+
+        {/* Deploy Error */}
+        {deployError && (
+          <p className="mt-2 text-[11px] text-red-400/80 bg-red-500/5 rounded-lg px-3 py-2">{deployError}</p>
         )}
       </div>
 
@@ -707,8 +813,10 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function OutreachPanel({ outreach }: { outreach: OutreachMessage | null }) {
+function OutreachPanel({ outreach, deployment, leadId, onUpdate }: { outreach: OutreachMessage | null; deployment: Deployment | null; leadId: string; onUpdate: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [addingUrl, setAddingUrl] = useState(false);
+  const [urlAdded, setUrlAdded] = useState(false);
 
   if (!outreach) {
     return <EmptyState message="Outreach message not yet generated." />;
@@ -719,6 +827,24 @@ function OutreachPanel({ outreach }: { outreach: OutreachMessage | null }) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleAddUrl = async () => {
+    if (!deployment?.deployUrl) return;
+    setAddingUrl(true);
+    try {
+      await api.addUrlToOutreach(leadId, deployment.deployUrl);
+      setUrlAdded(true);
+      onUpdate();
+      setTimeout(() => setUrlAdded(false), 3000);
+    } catch {
+      // silently fail
+    } finally {
+      setAddingUrl(false);
+    }
+  };
+
+  const hasDeployUrl = deployment?.status === 'DEPLOYED' && deployment.deployUrl;
+  const emailAlreadyHasUrl = hasDeployUrl && outreach.body.includes(deployment!.deployUrl!);
 
   return (
     <div className="max-w-2xl">
@@ -740,16 +866,41 @@ function OutreachPanel({ outreach }: { outreach: OutreachMessage | null }) {
               {outreach.body}
             </div>
           </div>
-          <button
-            onClick={handleCopy}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
-              copied
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'gradient-primary text-white hover:shadow-lg hover:shadow-indigo-500/20'
-            }`}
-          >
-            {copied ? <><CheckCheck className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy to Clipboard</>}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleCopy}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                copied
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'gradient-primary text-white hover:shadow-lg hover:shadow-indigo-500/20'
+              }`}
+            >
+              {copied ? <><CheckCheck className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy to Clipboard</>}
+            </button>
+
+            {/* Add URL to Email button — show when deployed and URL not already in email */}
+            {hasDeployUrl && !emailAlreadyHasUrl && (
+              <button
+                onClick={handleAddUrl}
+                disabled={addingUrl}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-all ${
+                  urlAdded
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-[var(--color-surface-overlay)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-white hover:bg-white/[0.06]'
+                } disabled:opacity-50`}
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                {urlAdded ? 'URL Added!' : addingUrl ? 'Adding...' : 'Add Live URL to Email'}
+              </button>
+            )}
+
+            {/* Already has URL indicator */}
+            {hasDeployUrl && emailAlreadyHasUrl && (
+              <span className="flex items-center gap-1.5 px-3 py-2 text-[11px] text-emerald-400">
+                <CheckCircle className="w-3.5 h-3.5" /> Live URL included
+              </span>
+            )}
+          </div>
         </div>
       </Card>
     </div>

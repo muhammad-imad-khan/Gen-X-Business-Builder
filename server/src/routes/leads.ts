@@ -6,6 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config';
 import { processLead } from '../services/processor';
 import { getPlanUsage } from '../lib/plan-limits';
+import { deployToVercel } from '../services/deployment';
+import { generateProjectFiles } from '../services/code-generator';
+import { generateOutreachMessage } from '../services/outreach-generator';
 
 const router = Router();
 
@@ -252,6 +255,106 @@ router.get('/:id/preview', async (req: Request, res: Response, next: NextFunctio
           }
         : null,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Manual Deploy ─────────────────────────────────────────────
+router.post('/:id/deploy', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, userId: req.user!.userId },
+    });
+    if (!lead) { res.status(404).json({ error: 'Lead not found' }); return; }
+    if (lead.status !== 'COMPLETED') { res.status(400).json({ error: 'Lead must be completed before deploying' }); return; }
+
+    // Plan limit check
+    const usage = await getPlanUsage(req.user!.userId);
+    if (!usage.canDeploy) {
+      res.status(403).json({ error: 'Deployment limit reached. Upgrade to Pro for unlimited deployments.', code: 'DEPLOY_LIMIT' });
+      return;
+    }
+
+    // Get generated app files from deliverable
+    const appDeliverable = await prisma.deliverable.findFirst({
+      where: { leadId: lead.id, type: { in: ['AI_AGENT_APP', 'WEBSITE_APP'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    let filesToDeploy: Record<string, string> | undefined;
+    if (appDeliverable?.content && (appDeliverable.content as any).files) {
+      filesToDeploy = (appDeliverable.content as any).files;
+    } else {
+      // Regenerate files on-the-fly
+      const enrichmentRecord = await prisma.enrichment.findUnique({ where: { leadId: lead.id } });
+      const specDeliverable = await prisma.deliverable.findFirst({
+        where: { leadId: lead.id, type: { in: ['AI_AGENT_SPEC', 'WEBSITE_PROPOSAL'] } },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (enrichmentRecord && specDeliverable) {
+        filesToDeploy = generateProjectFiles(lead, enrichmentRecord, specDeliverable);
+      }
+    }
+
+    if (!filesToDeploy) {
+      res.status(400).json({ error: 'No generated files found to deploy' });
+      return;
+    }
+
+    const projectName = `${lead.businessName} ${lead.solutionType === 'AI_AGENT' ? 'Agent' : 'Website'}`;
+    const result = await deployToVercel({
+      leadId: lead.id,
+      userId: lead.userId,
+      projectName,
+      files: filesToDeploy,
+      framework: 'nextjs',
+    });
+
+    logger.info({ leadId: lead.id, deployUrl: result.deployUrl }, 'Manual deploy completed');
+    res.json({ deployUrl: result.deployUrl, repoUrl: result.repoUrl });
+  } catch (err: any) {
+    if (err.message?.includes('not connected')) {
+      res.status(400).json({ error: err.message });
+    } else {
+      next(err);
+    }
+  }
+});
+
+// ─── Add Deploy URL to Outreach Email ──────────────────────────
+router.post('/:id/outreach/add-url', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { deployUrl } = req.body;
+    if (!deployUrl || typeof deployUrl !== 'string') {
+      res.status(400).json({ error: 'deployUrl is required' });
+      return;
+    }
+
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, userId: req.user!.userId },
+      include: { enrichment: true },
+    });
+    if (!lead) { res.status(404).json({ error: 'Lead not found' }); return; }
+    if (!lead.enrichment) { res.status(400).json({ error: 'Lead has no enrichment data' }); return; }
+    if (!lead.solutionType) { res.status(400).json({ error: 'No solution type selected' }); return; }
+
+    // Get solution deliverable for context
+    const specDeliverable = await prisma.deliverable.findFirst({
+      where: { leadId: lead.id, type: { in: ['AI_AGENT_SPEC', 'WEBSITE_PROPOSAL'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const result = await generateOutreachMessage(
+      lead,
+      lead.enrichment,
+      lead.solutionType,
+      specDeliverable?.content as Record<string, unknown> | undefined,
+      deployUrl,
+    );
+
+    logger.info({ leadId: lead.id }, 'Outreach regenerated with deploy URL');
+    res.json({ subject: result.subject, body: result.body });
   } catch (err) {
     next(err);
   }

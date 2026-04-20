@@ -267,6 +267,15 @@ export const api = {
     request<{ plan: string; subscriptionStatus: string | null; subscriptionId: string | null; currentPeriodEnd: string | null }>('/billing/subscription'),
   activatePro: () =>
     request<{ plan: string; subscriptionStatus: string; currentPeriodEnd: string; message: string }>('/billing/activate-pro', { method: 'POST' }),
+
+  // Deploy & Outreach URL
+  deployLead: (id: string) =>
+    request<{ deployUrl: string; repoUrl: string }>(`/leads/${id}/deploy`, { method: 'POST' }),
+  addUrlToOutreach: (id: string, deployUrl: string) =>
+    request<{ subject: string; body: string }>(`/leads/${id}/outreach/add-url`, {
+      method: 'POST',
+      body: JSON.stringify({ deployUrl }),
+    }),
 };
 
 // ─── Polling Helper ────────────────────────────────────────────
