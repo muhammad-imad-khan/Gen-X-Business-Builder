@@ -195,6 +195,15 @@ export const api = {
   // Settings
   getSettings: () =>
     request<SettingsResponse>('/settings'),
+
+  // Profile
+  updateProfile: (data: { name?: string; company?: string | null }) =>
+    request<{ user: any }>('/auth/me', { method: 'PUT', body: JSON.stringify(data) }),
+  updateAvatar: (avatarUrl: string) =>
+    request<{ user: any }>('/auth/me/avatar', { method: 'PUT', body: JSON.stringify({ avatarUrl }) }),
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    request<{ message: string }>('/auth/me/password', { method: 'PUT', body: JSON.stringify(data) }),
+
   updateAiSettings: (data: { aiProvider: string; aiModel: string; aiApiKey?: string }) =>
     request<{ aiProvider: string; aiModel: string; aiApiKeySet: boolean; aiApiKeyMasked: string | null }>('/settings/ai', {
       method: 'PUT',

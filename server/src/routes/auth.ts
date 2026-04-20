@@ -151,7 +151,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, email: true, name: true, company: true, plan: true, createdAt: true },
+      select: { id: true, email: true, name: true, company: true, plan: true, avatarUrl: true, createdAt: true },
     });
 
     if (!user) {
@@ -163,6 +163,87 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ err }, 'Failed to fetch user');
     res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+// ─── PUT /api/auth/me (update profile) ────────────────────────
+const updateProfileSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  company: z.string().max(100).optional().nullable(),
+});
+
+router.put('/me', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const data = updateProfileSchema.parse(req.body);
+    const user = await prisma.user.update({
+      where: { id: req.user!.userId },
+      data,
+      select: { id: true, email: true, name: true, company: true, plan: true, avatarUrl: true, createdAt: true },
+    });
+    res.json({ user });
+  } catch (err) {
+    if (err instanceof z.ZodError) throw err;
+    logger.error({ err }, 'Failed to update profile');
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// ─── PUT /api/auth/me/password ────────────────────────────────
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+router.put('/me/password', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const data = changePasswordSchema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    const valid = await bcrypt.compare(data.currentPassword, user.password);
+    if (!valid) {
+      res.status(400).json({ error: 'Current password is incorrect' });
+      return;
+    }
+    const hashedPassword = await bcrypt.hash(data.newPassword, 12);
+    await prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } });
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    if (err instanceof z.ZodError) throw err;
+    logger.error({ err }, 'Failed to change password');
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+// ─── PUT /api/auth/me/avatar ──────────────────────────────────
+router.put('/me/avatar', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { avatarUrl } = req.body;
+    if (!avatarUrl || typeof avatarUrl !== 'string') {
+      res.status(400).json({ error: 'Avatar URL is required' });
+      return;
+    }
+    // Only allow data URIs (base64) or https URLs
+    if (!avatarUrl.startsWith('data:image/') && !avatarUrl.startsWith('https://')) {
+      res.status(400).json({ error: 'Invalid avatar format' });
+      return;
+    }
+    // Limit base64 size to 500KB
+    if (avatarUrl.startsWith('data:image/') && avatarUrl.length > 500000) {
+      res.status(400).json({ error: 'Image too large. Max 500KB.' });
+      return;
+    }
+    const user = await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: { avatarUrl },
+      select: { id: true, email: true, name: true, company: true, plan: true, avatarUrl: true, createdAt: true },
+    });
+    res.json({ user });
+  } catch (err) {
+    logger.error({ err }, 'Failed to update avatar');
+    res.status(500).json({ error: 'Failed to update avatar' });
   }
 });
 

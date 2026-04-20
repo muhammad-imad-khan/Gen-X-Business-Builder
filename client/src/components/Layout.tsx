@@ -89,9 +89,13 @@ export default function Layout() {
         {/* Sidebar footer */}
         <div className="p-4 border-t border-[var(--color-border)]">
           <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-white">
-              {user?.name?.[0]?.toUpperCase() || 'U'}
-            </div>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-xs font-bold text-white">
+                {user?.name?.[0]?.toUpperCase() || 'U'}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-white truncate">{user?.name || 'User'}</p>
               <p className="text-[10px] text-[var(--color-text-muted)]">{user?.plan === 'free' ? 'Free Plan' : user?.plan}</p>
