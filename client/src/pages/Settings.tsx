@@ -268,55 +268,14 @@ function ProfileTab() {
 // ═══════════════════════════════════════════════════════════════
 
 function PlansTab() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const [usage, setUsage] = useState<any>(null);
-  const [paddleReady, setPaddleReady] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     api.getPlanUsage().then(setUsage).catch(() => {});
     api.getSubscription().then(setSubscription).catch(() => {});
-
-    // Initialize Paddle
-    api.getBillingConfig().then((cfg) => {
-      if (cfg.clientToken && (window as any).Paddle) {
-        const Paddle = (window as any).Paddle;
-        Paddle.Environment.set(cfg.environment);
-        Paddle.Initialize({
-          token: cfg.clientToken,
-          eventCallback: (ev: any) => {
-            if (ev.name === 'checkout.completed') {
-              // Refresh user plan after successful checkout
-              setTimeout(async () => {
-                await refreshUser();
-                api.getPlanUsage().then(setUsage).catch(() => {});
-                api.getSubscription().then(setSubscription).catch(() => {});
-              }, 2000);
-            }
-          },
-        });
-        setPaddleReady(true);
-      }
-    }).catch(() => {});
   }, []);
-
-  async function openCheckout() {
-    if (!paddleReady || !(window as any).Paddle) return;
-    setCheckoutLoading(true);
-    try {
-      const cfg = await api.getBillingConfig();
-      (window as any).Paddle.Checkout.open({
-        items: [{ priceId: cfg.proPriceId, quantity: 1 }],
-        customData: { user_id: user?.id },
-        customer: { email: user?.email },
-      });
-    } catch (err) {
-      console.error('Checkout error:', err);
-    } finally {
-      setCheckoutLoading(false);
-    }
-  }
 
   const plans = [
     {
@@ -401,10 +360,9 @@ function PlansTab() {
               ) : plan.key === 'enterprise' ? (
                 <a href="mailto:contact@elysiansoft.com?subject=Enterprise Plan Inquiry" className="block w-full py-2.5 rounded-xl text-xs font-medium text-center bg-purple-600 hover:bg-purple-500 text-white transition-colors">Contact Sales</a>
               ) : plan.key === 'pro' ? (
-                <button onClick={openCheckout} disabled={checkoutLoading || !paddleReady} className="w-full py-2.5 rounded-xl text-xs font-medium gradient-primary text-white hover:shadow-lg hover:shadow-indigo-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                  {checkoutLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <a href="https://map-scrapper-five.vercel.app" target="_blank" rel="noopener noreferrer" className="w-full py-2.5 rounded-xl text-xs font-medium gradient-primary text-white hover:shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
                   Upgrade to Pro
-                </button>
+                </a>
               ) : (
                 <button disabled className="w-full py-2.5 rounded-xl text-xs font-medium bg-[var(--color-surface-overlay)] text-[var(--color-text-muted)] border border-[var(--color-border)] cursor-not-allowed opacity-50">Free Plan</button>
               )}
