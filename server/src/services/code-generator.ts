@@ -171,6 +171,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // Stats section
   const stats = generateStats(category, rating, reviewCount, services.length);
 
+  // Pre-compute fallback strings to avoid nested backticks (breaks Vercel bundler)
+  const heroFallback = 'Trusted ' + category.toLowerCase() + ' services delivering excellence and quality for every client.';
+  const aboutFallback = 'At ' + bizName + ', we are dedicated to providing top-quality ' + category.toLowerCase() + ' services. Our team of experienced professionals ensures every client receives personalized attention and outstanding results.';
+  const footerFallback = 'Professional ' + category.toLowerCase() + ' services you can trust.';
+  const heroText = esc((summary || heroFallback).slice(0, 250));
+  const aboutText = esc((summary || aboutFallback).slice(0, 400));
+  const footerText = esc((summary || footerFallback).slice(0, 150));
+  const websiteDisplay = website ? esc(website.replace(/^https?:\/\//, '')) : '';
+
   // page.tsx — Professional landing page
   files['src/app/page.tsx'] = `"use client";
 
@@ -210,7 +219,7 @@ export default function Home() {
               ${esc(bizName)}
             </h1>
             <p className="mt-6 text-lg lg:text-xl text-white/75 max-w-2xl leading-relaxed animate-fade-in-up delay-200">
-              ${esc((summary || \`Trusted ${category.toLowerCase()} services delivering excellence and quality for every client.\`).slice(0, 250))}
+              ${heroText}
             </p>
             <div className="mt-10 flex flex-wrap gap-4 animate-fade-in-up delay-300">
               <a href="#contact" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-${colorScheme.primary}-700 font-bold rounded-2xl hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
@@ -266,7 +275,7 @@ ${serviceCardsHtml}
                 Your Trusted ${esc(category)} Partner
               </h2>
               <p className="mt-6 text-gray-600 leading-relaxed text-lg">
-                ${esc((summary || \`At ${bizName}, we are dedicated to providing top-quality ${category.toLowerCase()} services. Our team of experienced professionals ensures every client receives personalized attention and outstanding results.\`).slice(0, 400))}
+                ${aboutText}
               </p>
               <div className="mt-8 grid grid-cols-2 gap-4">
                 <div className="flex items-center gap-3">
@@ -381,7 +390,7 @@ ${trustElements.slice(0, 6).map((t: string, i: number) => `              <div cl
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Website</p>
-                    <a href="${esc(website)}" target="_blank" rel="noopener noreferrer" className="text-lg font-semibold text-gray-900 hover:text-${colorScheme.primary}-600 transition-colors">${esc(website.replace(/^https?:\\/\\//, ''))}</a>
+                    <a href="${esc(website)}" target="_blank" rel="noopener noreferrer" className="text-lg font-semibold text-gray-900 hover:text-${colorScheme.primary}-600 transition-colors">${websiteDisplay}</a>
                   </div>
                 </div>` : ''}
               </div>
@@ -424,7 +433,7 @@ ${trustElements.slice(0, 6).map((t: string, i: number) => `              <div cl
           <div className="grid md:grid-cols-3 gap-12">
             <div>
               <h3 className="text-xl font-bold">${esc(bizName.length > 25 ? bizName.split(' ').slice(0, 3).join(' ') : bizName)}</h3>
-              <p className="mt-3 text-gray-400 text-sm leading-relaxed">${esc((summary || \`Professional ${category.toLowerCase()} services you can trust.\`).slice(0, 150))}</p>
+              <p className="mt-3 text-gray-400 text-sm leading-relaxed">${footerText}</p>
             </div>
             <div>
               <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-400">Quick Links</h4>
