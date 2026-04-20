@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Upload, Users, Settings, Menu, X, ChevronRight, LogOut, Sun, Moon, Monitor } from 'lucide-react';
+import { LayoutDashboard, Upload, Users, UserCircle, Menu, X, ChevronRight, LogOut, Sun, Moon, Monitor } from 'lucide-react';
 import Logo from './Logo';
 import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/theme';
@@ -9,14 +9,14 @@ const nav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/dashboard/import', label: 'Business Builder', icon: Upload },
   { to: '/dashboard/leads', label: 'All Leads', icon: Users },
-  { to: '/dashboard/settings', label: 'Settings', icon: Settings },
+  { to: '/dashboard/settings', label: 'Profile', icon: UserCircle },
 ];
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/dashboard/import': 'Business Builder',
   '/dashboard/leads': 'All Leads',
-  '/dashboard/settings': 'Settings',
+  '/dashboard/settings': 'Profile',
 };
 
 export default function Layout() {

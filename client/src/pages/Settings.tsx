@@ -23,7 +23,7 @@ export default function Settings() {
   return (
     <div className="animate-fade-in max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-white">Settings</h1>
+        <h1 className="text-xl font-bold text-white">Profile</h1>
         <p className="text-xs text-[var(--color-text-muted)] mt-1">Manage your profile, plan, integrations, and preferences.</p>
       </div>
 
