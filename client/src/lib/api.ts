@@ -18,11 +18,21 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     window.location.href = '/login';
     throw new Error('Session expired');
   }
+
+  // Try to parse JSON; if the body isn't JSON (e.g. Vercel error page), handle gracefully
+  const text = await res.text();
+  let body: any;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    if (!res.ok) throw new Error(text.slice(0, 200) || `Request failed: ${res.status}`);
+    throw new Error('Server returned an invalid response. Please try again.');
+  }
+
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed: ${res.status}`);
   }
-  return res.json();
+  return body as T;
 }
 
 // ─── Lead Types ────────────────────────────────────────────────
