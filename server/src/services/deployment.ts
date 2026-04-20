@@ -182,6 +182,17 @@ async function createVercelProject(
   teamId?: string,
 ) {
   const qs = teamId ? `?teamId=${teamId}` : '';
+
+  // Check if project already exists
+  const existingRes = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(name)}${qs}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (existingRes.ok) {
+    logger.info({ name }, 'Vercel project already exists, reusing');
+    return existingRes.json() as Promise<{ id: string; name: string }>;
+  }
+
+  // Create new project
   const res = await fetch(`https://api.vercel.com/v10/projects${qs}`, {
     method: 'POST',
     headers: {
