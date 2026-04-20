@@ -17,7 +17,7 @@ Rules:
 - Do NOT use generic phrases like "I hope this email finds you well"
 - If a LIVE DEMO URL is provided, prominently include it in the email body — this is the most powerful hook
 - Format: Subject line on first line, then blank line, then email body
-- Sign off as "[Your Name], [Your Title] at [Your Company]" (use placeholders)`;
+- Sign off using the SENDER details provided below (name, company). Do NOT use placeholders like [Your Name] or [Your Company].`;
 
 export async function generateOutreachMessage(
   lead: Lead,
@@ -28,15 +28,29 @@ export async function generateOutreachMessage(
 ): Promise<{ subject: string; body: string }> {
   logger.info({ leadId: lead.id, solutionType }, 'Generating outreach message');
 
-  const userPrompt = buildOutreachPrompt(lead, enrichment, solutionType, deliverableContent, deployUrl);
+  // Fetch the user's profile for the email signature
+  const sender = await prisma.user.findUnique({
+    where: { id: lead.userId },
+    select: { name: true, company: true },
+  });
+
+  const userPrompt = buildOutreachPrompt(lead, enrichment, solutionType, deliverableContent, deployUrl, sender);
 
   const raw = await generateText(OUTREACH_SYSTEM_PROMPT, userPrompt, {
     temperature: 0.8,
     maxTokens: 1500,
   });
 
+  // Replace any remaining placeholder tokens with actual user profile data
+  const senderName = sender?.name || 'The Team';
+  const senderCompany = sender?.company || 'Our Team';
+  const processed = raw
+    .replace(/\[Your Name\]/gi, senderName)
+    .replace(/\[Your Title\]/gi, 'Digital Solutions Specialist')
+    .replace(/\[Your Company\]/gi, senderCompany);
+
   // Parse subject and body from the response
-  const lines = raw.trim().split('\n');
+  const lines = processed.trim().split('\n');
   let subject = '';
   let body = '';
 
@@ -80,6 +94,7 @@ function buildOutreachPrompt(
   solutionType: SolutionType,
   deliverableContent?: Record<string, unknown>,
   deployUrl?: string,
+  sender?: { name: string | null; company: string | null } | null,
 ): string {
   const solutionName = solutionType === 'AI_AGENT' ? 'AI Agent / Chatbot' : 'Website Redesign / Improvement';
 
@@ -122,5 +137,9 @@ ENRICHMENT:
 SOLUTION TYPE: ${solutionName}
 ${solutionHighlights}
 ${deployUrl ? `\nLIVE DEMO URL: ${deployUrl}\n\nIMPORTANT: Include this live demo URL in the email. Phrase it as: "I've put together a working preview — you can see it live here: ${deployUrl}". This makes the email dramatically more compelling because the prospect can immediately see what was built for them.\n` : ''}
-Write the email now. Start with the Subject line.`;
+SENDER:
+- Name: ${sender?.name || 'The Team'}
+- Company: ${sender?.company || 'Our Team'}
+
+Write the email now. Start with the Subject line. Sign off with the sender's real name and company — never use placeholders.`;
 }
