@@ -58,4 +58,20 @@ export const config = {
   },
 
   isVercel: !!process.env.VERCEL,
+
+  paddle: {
+    apiKey: process.env.PADDLE_ENV === 'production'
+      ? process.env.LIVE_PADDLE_API_KEY || ''
+      : process.env.TEST_PADDLE_API_KEY || '',
+    webhookSecret: process.env.PADDLE_ENV === 'production'
+      ? process.env.LIVE_WEBHOOK_SECRET || ''
+      : process.env.TEST_PADDLE_WEBHOOK_SECRET || '',
+    clientToken: process.env.PADDLE_ENV === 'production'
+      ? process.env.LIVE_PADDLE_CLIENT_TOKEN || ''
+      : process.env.TEST_PADDLE_CLIENT_TOKEN || '',
+    proPriceId: process.env.PADDLE_ENV === 'production'
+      ? process.env.PRICE_GXBB_PRO_ID || ''
+      : process.env.TEST_GXBB_PRO_ID || '',
+    environment: (process.env.PADDLE_ENV || 'sandbox') as 'sandbox' | 'production',
+  },
 } as const;

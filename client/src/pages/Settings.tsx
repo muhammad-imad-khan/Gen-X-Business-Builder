@@ -268,12 +268,55 @@ function ProfileTab() {
 // ═══════════════════════════════════════════════════════════════
 
 function PlansTab() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [usage, setUsage] = useState<any>(null);
+  const [paddleReady, setPaddleReady] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     api.getPlanUsage().then(setUsage).catch(() => {});
+    api.getSubscription().then(setSubscription).catch(() => {});
+
+    // Initialize Paddle
+    api.getBillingConfig().then((cfg) => {
+      if (cfg.clientToken && (window as any).Paddle) {
+        const Paddle = (window as any).Paddle;
+        Paddle.Environment.set(cfg.environment);
+        Paddle.Initialize({
+          token: cfg.clientToken,
+          eventCallback: (ev: any) => {
+            if (ev.name === 'checkout.completed') {
+              // Refresh user plan after successful checkout
+              setTimeout(async () => {
+                await refreshUser();
+                api.getPlanUsage().then(setUsage).catch(() => {});
+                api.getSubscription().then(setSubscription).catch(() => {});
+              }, 2000);
+            }
+          },
+        });
+        setPaddleReady(true);
+      }
+    }).catch(() => {});
   }, []);
+
+  async function openCheckout() {
+    if (!paddleReady || !(window as any).Paddle) return;
+    setCheckoutLoading(true);
+    try {
+      const cfg = await api.getBillingConfig();
+      (window as any).Paddle.Checkout.open({
+        items: [{ priceId: cfg.proPriceId, quantity: 1 }],
+        customData: { user_id: user?.id },
+        customer: { email: user?.email },
+      });
+    } catch (err) {
+      console.error('Checkout error:', err);
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
 
   const plans = [
     {
@@ -357,10 +400,13 @@ function PlansTab() {
                 <button disabled className="w-full py-2.5 rounded-xl text-xs font-medium bg-[var(--color-surface-overlay)] text-[var(--color-text-muted)] border border-[var(--color-border)] cursor-default">Current Plan</button>
               ) : plan.key === 'enterprise' ? (
                 <a href="mailto:contact@elysiansoft.com?subject=Enterprise Plan Inquiry" className="block w-full py-2.5 rounded-xl text-xs font-medium text-center bg-purple-600 hover:bg-purple-500 text-white transition-colors">Contact Sales</a>
-              ) : (
-                <button className="w-full py-2.5 rounded-xl text-xs font-medium gradient-primary text-white hover:shadow-lg hover:shadow-indigo-500/20 transition-all">
-                  {plan.key === 'pro' ? 'Upgrade to Pro' : 'Downgrade'}
+              ) : plan.key === 'pro' ? (
+                <button onClick={openCheckout} disabled={checkoutLoading || !paddleReady} className="w-full py-2.5 rounded-xl text-xs font-medium gradient-primary text-white hover:shadow-lg hover:shadow-indigo-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                  {checkoutLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Upgrade to Pro
                 </button>
+              ) : (
+                <button disabled className="w-full py-2.5 rounded-xl text-xs font-medium bg-[var(--color-surface-overlay)] text-[var(--color-text-muted)] border border-[var(--color-border)] cursor-not-allowed opacity-50">Free Plan</button>
               )}
             </div>
           );
@@ -371,9 +417,24 @@ function PlansTab() {
         <Shield className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
         <div>
           <p className="text-xs font-medium text-white">Secure Payments</p>
-          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">All payments are processed securely. You can upgrade, downgrade, or cancel your plan at any time.</p>
+          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">All payments are processed securely via Paddle. You can upgrade, downgrade, or cancel your plan at any time.</p>
         </div>
       </div>
+
+      {subscription?.subscriptionStatus && (
+        <div className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-xl p-4 flex items-start gap-3">
+          <CreditCard className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-white">Subscription Status: <span className={`capitalize ${subscription.subscriptionStatus === 'active' ? 'text-emerald-400' : subscription.subscriptionStatus === 'canceled' ? 'text-amber-400' : 'text-red-400'}`}>{subscription.subscriptionStatus}</span></p>
+            {subscription.currentPeriodEnd && (
+              <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                {subscription.subscriptionStatus === 'canceled' ? 'Access until' : 'Next billing date'}:{' '}
+                {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

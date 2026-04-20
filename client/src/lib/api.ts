@@ -259,6 +259,12 @@ export const api = {
     }),
   deleteCategory: (id: string) =>
     request<{ deleted: boolean }>(`/categories/${id}`, { method: 'DELETE' }),
+
+  // Billing / Paddle
+  getBillingConfig: () =>
+    request<{ clientToken: string; proPriceId: string; environment: 'sandbox' | 'production' }>('/billing/config'),
+  getSubscription: () =>
+    request<{ plan: string; subscriptionStatus: string | null; subscriptionId: string | null; currentPeriodEnd: string | null }>('/billing/subscription'),
 };
 
 // ─── Polling Helper ────────────────────────────────────────────

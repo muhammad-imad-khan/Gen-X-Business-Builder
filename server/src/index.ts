@@ -22,6 +22,7 @@ import processRouter from './routes/process';
 import settingsRouter from './routes/settings';
 import scrapeRouter from './routes/scrape';
 import categoriesRouter from './routes/categories';
+import billingRouter from './routes/billing';
 import { requireAuth } from './lib/auth';
 
 const app = express();
@@ -67,6 +68,7 @@ app.use('/api/process', requireAuth, processRouter);
 app.use('/api/settings', requireAuth, settingsRouter);
 app.use('/api/scrape', requireAuth, scrapeRouter);
 app.use('/api/categories', requireAuth, categoriesRouter);
+app.use('/api/billing', billingRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

@@ -19,6 +19,13 @@ model User {
   avatarUrl     String?  @map("avatar_url")
   emailVerified Boolean  @default(false) @map("email_verified")
 
+  // Paddle Billing
+  paddleCustomerId    String?  @unique @map("paddle_customer_id")
+  paddleSubscriptionId String? @unique @map("paddle_subscription_id")
+  subscriptionStatus  String?  @map("subscription_status")  // active, canceled, past_due, paused
+  subscriptionPlanId  String?  @map("subscription_plan_id")
+  currentPeriodEnd    DateTime? @map("current_period_end")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt      @map("updated_at")
 
