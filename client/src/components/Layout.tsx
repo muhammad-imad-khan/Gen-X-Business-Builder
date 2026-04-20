@@ -98,7 +98,7 @@ export default function Layout() {
             )}
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-white truncate">{user?.name || 'User'}</p>
-              <p className="text-[10px] text-[var(--color-text-muted)]">{user?.plan === 'free' ? 'Free Plan' : user?.plan}</p>
+              <p className="text-[10px] text-[var(--color-text-muted)]">{user?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}</p>
             </div>
             <button
               onClick={logout}
