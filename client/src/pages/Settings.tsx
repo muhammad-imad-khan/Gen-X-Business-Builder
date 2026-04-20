@@ -383,10 +383,10 @@ function PlansTab() {
         <div className="bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-xl p-4 flex items-start gap-3">
           <CreditCard className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
           <div>
-            <p className="text-xs font-medium text-white">Subscription Status: <span className={`capitalize ${subscription.subscriptionStatus === 'active' ? 'text-emerald-400' : subscription.subscriptionStatus === 'canceled' ? 'text-amber-400' : 'text-red-400'}`}>{subscription.subscriptionStatus}</span></p>
+            <p className="text-xs font-medium text-white">Subscription Status: <span className={`capitalize ${subscription.subscriptionStatus === 'active' ? 'text-emerald-400' : subscription.subscriptionStatus === 'expired' ? 'text-red-400' : subscription.subscriptionStatus === 'canceled' ? 'text-amber-400' : 'text-red-400'}`}>{subscription.subscriptionStatus}</span></p>
             {subscription.currentPeriodEnd && (
               <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
-                {subscription.subscriptionStatus === 'canceled' ? 'Access until' : 'Next billing date'}:{' '}
+                {subscription.subscriptionStatus === 'expired' ? 'Expired on' : subscription.subscriptionStatus === 'canceled' ? 'Access until' : 'Valid until'}:{' '}
                 {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
               </p>
             )}

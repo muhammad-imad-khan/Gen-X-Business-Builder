@@ -265,6 +265,8 @@ export const api = {
     request<{ clientToken: string; proPriceId: string; environment: 'sandbox' | 'production' }>('/billing/config'),
   getSubscription: () =>
     request<{ plan: string; subscriptionStatus: string | null; subscriptionId: string | null; currentPeriodEnd: string | null }>('/billing/subscription'),
+  activatePro: () =>
+    request<{ plan: string; subscriptionStatus: string; currentPeriodEnd: string; message: string }>('/billing/activate-pro', { method: 'POST' }),
 };
 
 // ─── Polling Helper ────────────────────────────────────────────

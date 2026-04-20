@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { logger } from './logger';
 
 // ─── Plan Definitions ──────────────────────────────────────────
 export interface PlanLimits {
@@ -33,14 +34,30 @@ export interface PlanUsage {
  * Returns the user's plan usage — how many leads they've already processed
  * and whether they can process more.
  * "Processed" = any lead not in PENDING or FAILED state (i.e., actively being processed or completed).
+ *
+ * Also checks if the Pro plan has expired (past currentPeriodEnd) and auto-downgrades to free.
  */
 export async function getPlanUsage(userId: string): Promise<PlanUsage> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { plan: true },
+    select: { plan: true, currentPeriodEnd: true, subscriptionStatus: true },
   });
 
-  const plan = user?.plan || 'free';
+  let plan = user?.plan || 'free';
+
+  // Auto-expire: if plan is pro and currentPeriodEnd has passed, downgrade to free
+  if (plan === 'pro' && user?.currentPeriodEnd && user.currentPeriodEnd < new Date()) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        plan: 'free',
+        subscriptionStatus: 'expired',
+      },
+    });
+    logger.info({ userId }, 'Pro plan expired — downgraded to free');
+    plan = 'free';
+  }
+
   const limits = getPlanLimits(plan);
 
   // Count leads that are completed or currently being processed

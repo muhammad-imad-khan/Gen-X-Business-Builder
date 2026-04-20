@@ -4,6 +4,7 @@ import { config } from '../config';
 import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { requireAuth } from '../lib/auth';
+import { sendProReceiptEmail } from '../lib/email';
 
 const router = Router();
 
@@ -20,7 +21,7 @@ router.get('/config', requireAuth, (_req: Request, res: Response) => {
 // ─── GET /billing/subscription ─────────────────────────────────
 // Returns current subscription status
 router.get('/subscription', requireAuth, async (req: Request, res: Response) => {
-  const userId = (req as any).userId;
+  const userId = req.user!.userId;
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -35,6 +36,54 @@ router.get('/subscription', requireAuth, async (req: Request, res: Response) => 
     subscriptionStatus: user?.subscriptionStatus || null,
     subscriptionId: user?.paddleSubscriptionId || null,
     currentPeriodEnd: user?.currentPeriodEnd || null,
+  });
+});
+
+// ─── POST /billing/activate-pro ────────────────────────────────
+// Direct Pro activation — sets plan to pro with 30-day validity & sends receipt
+router.post('/activate-pro', requireAuth, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  if (user.plan === 'pro' && user.currentPeriodEnd && user.currentPeriodEnd > new Date()) {
+    res.status(400).json({ error: 'Pro plan is already active', currentPeriodEnd: user.currentPeriodEnd });
+    return;
+  }
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      plan: 'pro',
+      subscriptionStatus: 'active',
+      currentPeriodEnd: expiresAt,
+    },
+  });
+
+  // Send receipt email
+  try {
+    await sendProReceiptEmail(user.email, {
+      name: user.name || undefined,
+      activatedAt: now,
+      expiresAt,
+    });
+  } catch (err) {
+    logger.error({ err, userId }, 'Failed to send Pro receipt email');
+  }
+
+  logger.info({ userId, expiresAt }, 'Pro plan activated (30 days)');
+
+  res.json({
+    plan: 'pro',
+    subscriptionStatus: 'active',
+    currentPeriodEnd: expiresAt,
+    message: 'Pro plan activated for 30 days. Receipt sent to your email.',
   });
 });
 
@@ -118,6 +167,12 @@ async function handleSubscriptionActivated(data: any) {
   // Determine plan from price ID
   const plan = priceId === config.paddle.proPriceId ? 'pro' : 'free';
 
+  // Use Paddle's period end if available, otherwise set 30 days from now
+  const now = new Date();
+  const expiresAt = currentPeriodEnd
+    ? new Date(currentPeriodEnd)
+    : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
   await prisma.user.update({
     where: { id: user.id },
     data: {
@@ -126,11 +181,24 @@ async function handleSubscriptionActivated(data: any) {
       paddleSubscriptionId: subscriptionId,
       subscriptionStatus: status,
       subscriptionPlanId: priceId,
-      currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd) : null,
+      currentPeriodEnd: expiresAt,
     },
   });
 
-  logger.info({ userId: user.id, plan, subscriptionId }, 'Subscription activated');
+  // Send receipt email for Pro activation
+  if (plan === 'pro') {
+    try {
+      await sendProReceiptEmail(user.email, {
+        name: user.name || undefined,
+        activatedAt: now,
+        expiresAt,
+      });
+    } catch (err) {
+      logger.error({ err, userId: user.id }, 'Failed to send Pro receipt email');
+    }
+  }
+
+  logger.info({ userId: user.id, plan, subscriptionId, expiresAt }, 'Subscription activated');
 }
 
 async function handleSubscriptionUpdated(data: any) {
