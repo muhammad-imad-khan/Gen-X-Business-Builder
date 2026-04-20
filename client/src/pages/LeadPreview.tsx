@@ -708,10 +708,15 @@ function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsa
 
         {/* Deploy URL display */}
         {deployment?.status === 'DEPLOYED' && deployment.deployUrl && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-            <Globe className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <a href={deployment.deployUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-400 hover:text-emerald-300 truncate transition-colors">
-              {deployment.deployUrl}
+          <div className="mt-3 flex items-center gap-2">
+            <a
+              href={deployment.deployUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors truncate"
+            >
+              <Globe className="w-3.5 h-3.5 shrink-0" />
+              {deployment.deployUrl.replace('https://', '')}
             </a>
             <CopyButton text={deployment.deployUrl} />
           </div>
