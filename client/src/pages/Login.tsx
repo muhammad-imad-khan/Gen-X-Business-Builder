@@ -21,6 +21,10 @@ export default function Login() {
       await login(email, password);
       navigate('/dashboard');
     } catch (err: any) {
+      if (err.needsVerification) {
+        navigate('/verify-email', { state: { email: err.email || email } });
+        return;
+      }
       setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
@@ -98,6 +102,11 @@ export default function Login() {
               >
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
+            </div>
+            <div className="flex justify-end mt-1.5">
+              <Link to="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+                Forgot password?
+              </Link>
             </div>
           </div>
 

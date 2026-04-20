@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../lib/auth';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
 import Logo from '../components/Logo';
 
+const API_BASE = '/api';
+
 export default function Register() {
-  const { register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', email: '', password: '', company: '' });
   const [showPw, setShowPw] = useState(false);
@@ -20,15 +20,22 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      await register({
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        company: form.company || undefined,
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          company: form.company || undefined,
+        }),
       });
-      // Flag so GuestRoute redirects to /welcome instead of /dashboard
-      sessionStorage.setItem('genx_just_registered', '1');
-      navigate('/welcome', { replace: true });
+
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Registration failed');
+
+      // Redirect to email verification page
+      navigate('/verify-email', { state: { email: form.email } });
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {

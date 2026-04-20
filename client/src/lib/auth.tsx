@@ -60,6 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
+      if (body.needsVerification) {
+        const err: any = new Error(body.error || 'Email not verified');
+        err.needsVerification = true;
+        err.email = body.email;
+        throw err;
+      }
       throw new Error(body.error || 'Login failed');
     }
 

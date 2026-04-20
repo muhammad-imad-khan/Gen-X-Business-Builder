@@ -10,13 +10,14 @@ datasource db {
 
 // ─── User: authentication & ownership ──────────────────────────
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  company   String?
-  plan      String   @default("free")
-  avatarUrl String?  @map("avatar_url")
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String?
+  company       String?
+  plan          String   @default("free")
+  avatarUrl     String?  @map("avatar_url")
+  emailVerified Boolean  @default(false) @map("email_verified")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt      @map("updated_at")
@@ -26,8 +27,27 @@ model User {
   batches    Batch[]
   settings   Settings?
   categories Category[]
+  verificationCodes VerificationCode[]
 
   @@map("users")
+}
+
+// ─── VerificationCode: email verification & password reset ────
+model VerificationCode {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  code   String
+  type   VerificationCodeType
+  expiresAt DateTime @map("expires_at")
+  used   Boolean @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([code, type])
+  @@map("verification_codes")
 }
 
 // ─── Lead: raw scraped business data ───────────────────────────
@@ -301,6 +321,11 @@ enum BatchStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+enum VerificationCodeType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
 }
 
 enum DeploymentStatus {

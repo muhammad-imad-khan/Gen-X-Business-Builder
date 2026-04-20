@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { signToken, requireAuth } from '../lib/auth';
 import { getPlanUsage } from '../lib/plan-limits';
+import { generateVerificationCode, sendVerificationEmail, sendPasswordResetEmail } from '../lib/email';
 
 const router = Router();
 
@@ -59,6 +60,7 @@ router.post('/register', async (req: Request, res: Response) => {
         password: hashedPassword,
         name: data.name,
         company: data.company || null,
+        emailVerified: false,
       },
     });
 
@@ -72,18 +74,23 @@ router.post('/register', async (req: Request, res: Response) => {
       data: { userId: user.id },
     });
 
-    const token = signToken({ userId: user.id, email: user.email });
-
-    logger.info({ userId: user.id, email: user.email }, 'User registered');
-    res.status(201).json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        company: user.company,
-        plan: user.plan,
+    // Generate and send verification code
+    const code = generateVerificationCode();
+    await prisma.verificationCode.create({
+      data: {
+        userId: user.id,
+        code,
+        type: 'EMAIL_VERIFICATION',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
       },
+    });
+
+    await sendVerificationEmail(user.email, code, user.name || undefined);
+
+    logger.info({ userId: user.id, email: user.email }, 'User registered – verification email sent');
+    res.status(201).json({
+      message: 'Account created. Please check your email for a verification code.',
+      email: user.email,
     });
   } catch (err) {
     if (err instanceof z.ZodError) throw err;
@@ -111,6 +118,11 @@ router.post('/login', async (req: Request, res: Response) => {
     const valid = await bcrypt.compare(data.password, user.password);
     if (!valid) {
       res.status(401).json({ error: 'Invalid email or password' });
+      return;
+    }
+
+    if (!user.emailVerified) {
+      res.status(403).json({ error: 'Email not verified. Please verify your email first.', needsVerification: true, email: user.email });
       return;
     }
 
@@ -162,6 +174,195 @@ router.get('/me/usage', requireAuth, async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ err }, 'Failed to fetch plan usage');
     res.status(500).json({ error: 'Failed to fetch plan usage' });
+  }
+});
+
+// ─── POST /api/auth/verify-email ───────────────────────────────
+const verifyEmailSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+});
+
+router.post('/verify-email', async (req: Request, res: Response) => {
+  try {
+    const data = verifyEmailSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    if (!user) {
+      res.status(404).json({ error: 'Account not found' });
+      return;
+    }
+
+    if (user.emailVerified) {
+      res.json({ message: 'Email already verified' });
+      return;
+    }
+
+    const record = await prisma.verificationCode.findFirst({
+      where: {
+        userId: user.id,
+        code: data.code,
+        type: 'EMAIL_VERIFICATION',
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!record) {
+      res.status(400).json({ error: 'Invalid or expired verification code' });
+      return;
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } }),
+      prisma.verificationCode.update({ where: { id: record.id }, data: { used: true } }),
+    ]);
+
+    logger.info({ userId: user.id }, 'Email verified');
+    res.json({ message: 'Email verified successfully. You can now sign in.' });
+  } catch (err) {
+    if (err instanceof z.ZodError) throw err;
+    logger.error({ err }, 'Email verification failed');
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// ─── POST /api/auth/resend-code ────────────────────────────────
+const resendCodeSchema = z.object({
+  email: z.string().email(),
+  type: z.enum(['EMAIL_VERIFICATION', 'PASSWORD_RESET']).default('EMAIL_VERIFICATION'),
+});
+
+router.post('/resend-code', async (req: Request, res: Response) => {
+  try {
+    const data = resendCodeSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    if (!user) {
+      // Don't reveal whether email exists
+      res.json({ message: 'If an account exists, a new code has been sent.' });
+      return;
+    }
+
+    // Invalidate old codes of this type
+    await prisma.verificationCode.updateMany({
+      where: { userId: user.id, type: data.type, used: false },
+      data: { used: true },
+    });
+
+    const code = generateVerificationCode();
+    await prisma.verificationCode.create({
+      data: {
+        userId: user.id,
+        code,
+        type: data.type,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    });
+
+    if (data.type === 'EMAIL_VERIFICATION') {
+      await sendVerificationEmail(user.email, code, user.name || undefined);
+    } else {
+      await sendPasswordResetEmail(user.email, code, user.name || undefined);
+    }
+
+    logger.info({ userId: user.id, type: data.type }, 'Verification code resent');
+    res.json({ message: 'If an account exists, a new code has been sent.' });
+  } catch (err) {
+    if (err instanceof z.ZodError) throw err;
+    logger.error({ err }, 'Resend code failed');
+    res.status(500).json({ error: 'Failed to resend code' });
+  }
+});
+
+// ─── POST /api/auth/forgot-password ────────────────────────────
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const data = forgotPasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    if (!user) {
+      // Don't reveal whether email exists
+      res.json({ message: 'If an account exists, a reset code has been sent.' });
+      return;
+    }
+
+    // Invalidate old reset codes
+    await prisma.verificationCode.updateMany({
+      where: { userId: user.id, type: 'PASSWORD_RESET', used: false },
+      data: { used: true },
+    });
+
+    const code = generateVerificationCode();
+    await prisma.verificationCode.create({
+      data: {
+        userId: user.id,
+        code,
+        type: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    });
+
+    await sendPasswordResetEmail(user.email, code, user.name || undefined);
+
+    logger.info({ email: data.email }, 'Password reset code sent');
+    res.json({ message: 'If an account exists, a reset code has been sent.', email: data.email });
+  } catch (err) {
+    if (err instanceof z.ZodError) throw err;
+    logger.error({ err }, 'Forgot password failed');
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+// ─── POST /api/auth/reset-password ─────────────────────────────
+const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const data = resetPasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email: data.email } });
+    if (!user) {
+      res.status(404).json({ error: 'Account not found' });
+      return;
+    }
+
+    const record = await prisma.verificationCode.findFirst({
+      where: {
+        userId: user.id,
+        code: data.code,
+        type: 'PASSWORD_RESET',
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!record) {
+      res.status(400).json({ error: 'Invalid or expired reset code' });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(data.newPassword, 12);
+
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { password: hashedPassword } }),
+      prisma.verificationCode.update({ where: { id: record.id }, data: { used: true } }),
+    ]);
+
+    logger.info({ userId: user.id }, 'Password reset');
+    res.json({ message: 'Password has been reset successfully. You can now sign in.' });
+  } catch (err) {
+    if (err instanceof z.ZodError) throw err;
+    logger.error({ err }, 'Password reset failed');
+    res.status(500).json({ error: 'Password reset failed' });
   }
 });
 
