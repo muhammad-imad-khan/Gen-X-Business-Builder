@@ -314,11 +314,9 @@ router.post('/:id/deploy', async (req: Request, res: Response, next: NextFunctio
     logger.info({ leadId: lead.id, deployUrl: result.deployUrl }, 'Manual deploy completed');
     res.json({ deployUrl: result.deployUrl, repoUrl: result.repoUrl });
   } catch (err: any) {
-    if (err.message?.includes('not connected')) {
-      res.status(400).json({ error: err.message });
-    } else {
-      next(err);
-    }
+    const message = err?.message || 'Deployment failed';
+    logger.error({ leadId: req.params.id, err: message }, 'Manual deploy error');
+    res.status(400).json({ error: message });
   }
 });
 
