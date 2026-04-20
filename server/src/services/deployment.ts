@@ -87,6 +87,24 @@ export async function deployToVercel(input: DeployInput): Promise<{ deployUrl: s
 // ─── GitHub Helpers ────────────────────────────────────────────
 
 async function createGithubRepo(token: string, name: string) {
+  // First check if repo already exists
+  const userRes = await fetch('https://api.github.com/user', {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+  });
+  if (!userRes.ok) {
+    throw new Error('GitHub token is invalid or expired. Please reconnect in Settings.');
+  }
+  const user = await userRes.json();
+
+  const existingRes = await fetch(`https://api.github.com/repos/${user.login}/${name}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+  });
+  if (existingRes.ok) {
+    logger.info({ name }, 'Repo already exists, reusing');
+    return existingRes.json() as Promise<{ html_url: string; full_name: string }>;
+  }
+
+  // Repo doesn't exist — create it
   const res = await fetch('https://api.github.com/user/repos', {
     method: 'POST',
     headers: {
@@ -104,22 +122,6 @@ async function createGithubRepo(token: string, name: string) {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-
-    // If repo already exists (422), fetch and reuse it
-    if (res.status === 422 && body.errors?.some((e: any) => e.message === 'name already exists on this account')) {
-      logger.info({ name }, 'Repo already exists, fetching existing repo');
-      const userRes = await fetch('https://api.github.com/user', {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-      });
-      const user = await userRes.json();
-      const repoRes = await fetch(`https://api.github.com/repos/${user.login}/${name}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-      });
-      if (repoRes.ok) {
-        return repoRes.json() as Promise<{ html_url: string; full_name: string }>;
-      }
-    }
-
     const details = body.errors?.map((e: any) => e.message).join(', ') || '';
     throw new Error(`GitHub repo creation failed (${res.status}): ${body.message || res.statusText}${details ? ` — ${details}` : ''}`);
   }
