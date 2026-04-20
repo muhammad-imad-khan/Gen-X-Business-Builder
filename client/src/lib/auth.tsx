@@ -60,18 +60,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ email, password }),
     });
 
+    const text = await res.text();
+    let data: any;
+    try { data = JSON.parse(text); } catch { throw new Error('Server error. Please try again.'); }
+
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      if (body.needsVerification) {
-        const err: any = new Error(body.error || 'Email not verified');
+      if (data.needsVerification) {
+        const err: any = new Error(data.error || 'Email not verified');
         err.needsVerification = true;
-        err.email = body.email;
+        err.email = data.email;
         throw err;
       }
-      throw new Error(body.error || 'Login failed');
+      throw new Error(data.error || 'Login failed');
     }
-
-    const data = await res.json();
     localStorage.setItem('genx_token', data.token);
     setToken(data.token);
     setUser(data.user);
@@ -84,7 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify(input),
     });
 
-    const body = await res.json().catch(() => ({}));
+    const text = await res.text();
+    let body: any;
+    try { body = JSON.parse(text); } catch { throw new Error('Server error. Please try again.'); }
 
     if (!res.ok) {
       throw new Error(body.error || 'Registration failed');

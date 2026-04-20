@@ -85,12 +85,20 @@ router.post('/register', async (req: Request, res: Response) => {
       },
     });
 
-    await sendVerificationEmail(user.email, code, user.name || undefined);
+    // Send email in background — don't block registration
+    sendVerificationEmail(user.email, code, user.name || undefined).catch((emailErr) => {
+      logger.error({ emailErr, userId: user.id }, 'Failed to send verification email');
+    });
 
-    logger.info({ userId: user.id, email: user.email }, 'User registered – verification email sent');
+    logger.info({ userId: user.id, email: user.email }, 'User registered');
+    
+    // Auto-sign in: return a token so user can proceed immediately
+    const token = signToken(user.id);
     res.status(201).json({
       message: 'Account created. Please check your email for a verification code.',
       email: user.email,
+      token,
+      user: { id: user.id, email: user.email, name: user.name, plan: 'free', emailVerified: false },
     });
   } catch (err) {
     if (err instanceof z.ZodError) throw err;

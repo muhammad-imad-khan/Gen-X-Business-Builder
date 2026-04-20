@@ -31,7 +31,9 @@ export default function Register() {
         }),
       });
 
-      const body = await res.json();
+      const text = await res.text();
+      let body: any;
+      try { body = JSON.parse(text); } catch { throw new Error('Server error. Please try again.'); }
       if (!res.ok) throw new Error(body.error || 'Registration failed');
 
       // Redirect to email verification page
