@@ -104,7 +104,24 @@ async function createGithubRepo(token: string, name: string) {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(`GitHub repo creation failed: ${body.message || res.statusText}`);
+
+    // If repo already exists (422), fetch and reuse it
+    if (res.status === 422 && body.errors?.some((e: any) => e.message === 'name already exists on this account')) {
+      logger.info({ name }, 'Repo already exists, fetching existing repo');
+      const userRes = await fetch('https://api.github.com/user', {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      });
+      const user = await userRes.json();
+      const repoRes = await fetch(`https://api.github.com/repos/${user.login}/${name}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+      });
+      if (repoRes.ok) {
+        return repoRes.json() as Promise<{ html_url: string; full_name: string }>;
+      }
+    }
+
+    const details = body.errors?.map((e: any) => e.message).join(', ') || '';
+    throw new Error(`GitHub repo creation failed (${res.status}): ${body.message || res.statusText}${details ? ` — ${details}` : ''}`);
   }
 
   return res.json() as Promise<{ html_url: string; full_name: string }>;
@@ -118,6 +135,19 @@ async function pushFilesToRepo(
 ) {
   // Push each file via GitHub Contents API
   for (const [path, content] of Object.entries(files)) {
+    // Check if file already exists (need SHA to update)
+    let sha: string | undefined;
+    const getRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+      },
+    });
+    if (getRes.ok) {
+      const existing = await getRes.json();
+      sha = existing.sha;
+    }
+
     const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
       method: 'PUT',
       headers: {
@@ -128,6 +158,7 @@ async function pushFilesToRepo(
       body: JSON.stringify({
         message: `Add ${path}`,
         content: Buffer.from(content).toString('base64'),
+        ...(sha ? { sha } : {}),
       }),
     });
 
