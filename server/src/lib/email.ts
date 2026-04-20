@@ -21,6 +21,7 @@ export function generateVerificationCode(): string {
 
 export async function sendVerificationEmail(to: string, code: string, name?: string): Promise<void> {
   const subject = 'Verify your Gen X account';
+  const verifyLink = `${config.appUrl}/verify-email?email=${encodeURIComponent(to)}&code=${encodeURIComponent(code)}`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
       <h2 style="color: #6366f1; margin-bottom: 8px;">Gen X Business Builder</h2>
@@ -28,6 +29,10 @@ export async function sendVerificationEmail(to: string, code: string, name?: str
       <p>Your verification code is:</p>
       <div style="background: #f3f4f6; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
         <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1f2937;">${code}</span>
+      </div>
+      <p style="margin: 24px 0;">Or click the button below to verify your email instantly:</p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${verifyLink}" style="display: inline-block; background: #6366f1; color: #ffffff; font-weight: 600; font-size: 16px; padding: 14px 32px; border-radius: 12px; text-decoration: none;">Verify Email</a>
       </div>
       <p style="color: #6b7280; font-size: 14px;">This code expires in 10 minutes. If you didn't create an account, you can ignore this email.</p>
     </div>

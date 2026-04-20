@@ -27,6 +27,8 @@ export const config = {
     apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-12-01-preview',
   },
 
+  appUrl: process.env.APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.CLIENT_URL || 'http://localhost:5173')),
+
   cors: {
     clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
   },

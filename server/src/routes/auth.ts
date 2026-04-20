@@ -177,6 +177,56 @@ router.get('/me/usage', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ─── GET /api/auth/verify-email (link-based) ──────────────────
+router.get('/verify-email', async (req: Request, res: Response) => {
+  try {
+    const email = req.query.email as string;
+    const code = req.query.code as string;
+
+    if (!email || !code || code.length !== 6) {
+      res.status(400).json({ error: 'Invalid verification link' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.status(404).json({ error: 'Account not found' });
+      return;
+    }
+
+    if (user.emailVerified) {
+      res.json({ message: 'Email already verified', alreadyVerified: true });
+      return;
+    }
+
+    const record = await prisma.verificationCode.findFirst({
+      where: {
+        userId: user.id,
+        code,
+        type: 'EMAIL_VERIFICATION',
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!record) {
+      res.status(400).json({ error: 'Invalid or expired verification link' });
+      return;
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } }),
+      prisma.verificationCode.update({ where: { id: record.id }, data: { used: true } }),
+    ]);
+
+    logger.info({ userId: user.id }, 'Email verified via link');
+    res.json({ message: 'Email verified successfully. You can now sign in.', verified: true });
+  } catch (err) {
+    logger.error({ err }, 'Link-based email verification failed');
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
 // ─── POST /api/auth/verify-email ───────────────────────────────
 const verifyEmailSchema = z.object({
   email: z.string().email(),

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, RotateCcw } from 'lucide-react';
 import Logo from '../components/Logo';
 
@@ -8,14 +8,44 @@ const API_BASE = '/api';
 export default function VerifyEmail() {
   const navigate = useNavigate();
   const location = useLocation();
-  const email = (location.state as any)?.email || '';
+  const [searchParams] = useSearchParams();
+
+  // Get email from state (manual flow) or query params (link from email)
+  const emailFromState = (location.state as any)?.email || '';
+  const emailFromQuery = searchParams.get('email') || '';
+  const codeFromQuery = searchParams.get('code') || '';
+  const email = emailFromState || emailFromQuery;
 
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [autoVerifying, setAutoVerifying] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Auto-verify if email + code come from URL (clicked link in email)
+  useEffect(() => {
+    if (emailFromQuery && codeFromQuery && codeFromQuery.length === 6) {
+      setAutoVerifying(true);
+      fetch(`${API_BASE}/auth/verify-email?email=${encodeURIComponent(emailFromQuery)}&code=${encodeURIComponent(codeFromQuery)}`)
+        .then(res => res.json())
+        .then(body => {
+          if (body.verified || body.alreadyVerified) {
+            setSuccess('Email verified! Redirecting to sign in...');
+            sessionStorage.setItem('genx_just_registered', 'true');
+            setTimeout(() => navigate('/login', { replace: true }), 2000);
+          } else {
+            setError(body.error || 'Verification failed. Please enter the code manually.');
+            setAutoVerifying(false);
+          }
+        })
+        .catch(() => {
+          setError('Verification failed. Please enter the code manually.');
+          setAutoVerifying(false);
+        });
+    }
+  }, [emailFromQuery, codeFromQuery, navigate]);
 
   useEffect(() => {
     if (!email) navigate('/register', { replace: true });
