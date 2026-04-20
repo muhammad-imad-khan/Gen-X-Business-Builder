@@ -283,8 +283,8 @@ export default function Landing() {
           </div>
 
           {/* Floating badges */}
-          <div className="hidden md:block">
-            <div className="absolute -left-4 top-1/3 animate-float" style={{ animationDelay: '0s' }}>
+          <div className="hidden lg:block">
+            <div className="absolute -left-36 top-1/3 animate-float" style={{ animationDelay: '0s' }}>
               <div className="glass-card px-3 py-2 flex items-center gap-2 animate-border-glow backdrop-blur-md">
                 <div className="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -293,7 +293,7 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="absolute -right-4 top-1/4 animate-float" style={{ animationDelay: '2s' }}>
+            <div className="absolute -right-36 top-1/4 animate-float" style={{ animationDelay: '2s' }}>
               <div className="glass-card px-3 py-2 flex items-center gap-2 animate-border-glow backdrop-blur-md" style={{ animationDelay: '1s' }}>
                 <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center">
                   <Bot className="w-3.5 h-3.5 text-indigo-400" />
@@ -302,7 +302,7 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="absolute -left-8 bottom-1/4 animate-float" style={{ animationDelay: '4s' }}>
+            <div className="absolute -left-40 bottom-1/4 animate-float" style={{ animationDelay: '4s' }}>
               <div className="glass-card px-3 py-2 flex items-center gap-2 animate-border-glow backdrop-blur-md" style={{ animationDelay: '2s' }}>
                 <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center">
                   <Mail className="w-3.5 h-3.5 text-amber-400" />
