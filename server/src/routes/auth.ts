@@ -93,7 +93,7 @@ router.post('/register', async (req: Request, res: Response) => {
     logger.info({ userId: user.id, email: user.email }, 'User registered');
     
     // Auto-sign in: return a token so user can proceed immediately
-    const token = signToken(user.id);
+    const token = signToken({ userId: user.id, email: user.email });
     res.status(201).json({
       message: 'Account created. Please check your email for a verification code.',
       email: user.email,
@@ -102,8 +102,9 @@ router.post('/register', async (req: Request, res: Response) => {
     });
   } catch (err) {
     if (err instanceof z.ZodError) throw err;
-    logger.error({ err }, 'Registration failed');
-    res.status(500).json({ error: 'Registration failed' });
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error({ err, msg }, 'Registration failed');
+    res.status(500).json({ error: 'Registration failed', detail: msg });
   }
 });
 
