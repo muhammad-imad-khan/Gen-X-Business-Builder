@@ -52,7 +52,9 @@ export async function deployToVercel(input: DeployInput): Promise<{ deployUrl: s
     // 4. Trigger deployment
     const deployResult = await triggerVercelDeployment(
       settings.vercelToken,
-      vercelProject.id,
+      vercelProject.name,
+      settings.githubUsername!,
+      repoName,
       settings.vercelTeamId || undefined,
     );
 
@@ -217,7 +219,7 @@ async function createVercelProject(
   return res.json() as Promise<{ id: string; name: string }>;
 }
 
-async function triggerVercelDeployment(token: string, projectId: string, teamId?: string) {
+async function triggerVercelDeployment(token: string, projectName: string, gitOwner: string, gitRepo: string, teamId?: string) {
   const qs = teamId ? `?teamId=${teamId}` : '';
   const res = await fetch(`https://api.vercel.com/v13/deployments${qs}`, {
     method: 'POST',
@@ -226,8 +228,14 @@ async function triggerVercelDeployment(token: string, projectId: string, teamId?
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      name: projectId,
+      name: projectName,
       target: 'production',
+      gitSource: {
+        type: 'github',
+        org: gitOwner,
+        repo: gitRepo,
+        ref: 'main',
+      },
     }),
   });
 
