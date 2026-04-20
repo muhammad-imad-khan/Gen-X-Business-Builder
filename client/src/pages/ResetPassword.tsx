@@ -42,7 +42,7 @@ export default function ResetPassword() {
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getText().replace(/\D/g, '').slice(0, 6);
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
     const newCode = [...code];
     for (let i = 0; i < 6; i++) {
       newCode[i] = pasted[i] || '';
