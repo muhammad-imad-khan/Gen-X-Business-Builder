@@ -19,7 +19,13 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      navigate('/dashboard');
+      // Show welcome celebration on first login after registration
+      const justRegistered = sessionStorage.getItem('genx_just_registered');
+      if (justRegistered) {
+        navigate('/welcome');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       if (err.needsVerification) {
         navigate('/verify-email', { state: { email: err.email || email } });

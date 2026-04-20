@@ -70,6 +70,8 @@ export default function VerifyEmail() {
       if (!res.ok) throw new Error(body.error || 'Verification failed');
 
       setSuccess('Email verified! Redirecting to sign in...');
+      // Set flag so first login shows the Welcome celebration
+      sessionStorage.setItem('genx_just_registered', 'true');
       setTimeout(() => navigate('/login', { replace: true }), 2000);
     } catch (err: any) {
       setError(err.message || 'Verification failed');
