@@ -82,15 +82,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify(input),
     });
 
+    const body = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
       throw new Error(body.error || 'Registration failed');
     }
 
-    const data = await res.json();
-    localStorage.setItem('genx_token', data.token);
-    setToken(data.token);
-    setUser(data.user);
+    // Registration no longer auto-logs in — user must verify email first
+    // Return the response so caller can redirect to verify-email
+    return body;
   };
 
   const logout = () => {
