@@ -714,12 +714,12 @@ function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsa
               onClick={() => setShowChat(!showChat)}
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                 showChat
-                  ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
-                  : 'bg-[var(--color-surface-overlay)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-white hover:bg-white/[0.06]'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                  : 'bg-white/[0.06] border border-white/[0.1] text-white hover:bg-white/[0.1]'
               }`}
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              Revise
+              <span>Revise</span>
             </button>
           )}
         </div>
