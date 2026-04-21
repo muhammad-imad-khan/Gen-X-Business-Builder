@@ -735,7 +735,7 @@ function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsa
         {/* Deploy URL display */}
         {deployment?.status === 'DEPLOYED' && deployment.deployUrl && (
           <div className="mt-3 flex items-center gap-2">
-            <aa
+            <a
               href={deployment.deployUrl}
               target="_blank"
               rel="noopener noreferrer"
