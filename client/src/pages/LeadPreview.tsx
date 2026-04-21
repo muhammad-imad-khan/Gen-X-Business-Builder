@@ -707,6 +707,21 @@ function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsa
               {urlAdded ? 'URL Added to Email!' : addingUrl ? 'Adding...' : 'Add URL to Email'}
             </button>
           )}
+
+          {/* Revise Code — toggle chat */}
+          {isCompleted && (
+            <button
+              onClick={() => setShowChat(!showChat)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                showChat
+                  ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                  : 'bg-[var(--color-surface-overlay)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-white hover:bg-white/[0.06]'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              Revise
+            </button>
+          )}
         </div>
 
         {/* Deploy URL display */}
@@ -731,13 +746,16 @@ function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsa
         )}
       </div>
 
-      {/* Revision Chat */}
-      <RevisionChat
-        leadId={leadId}
-        solutionType={solutionType}
-        isCompleted={isCompleted}
-        onRevisionApplied={onUpdate}
-      />
+      {/* Revision Chat — toggled by Revise button */}
+      {showChat && (
+        <RevisionChat
+          leadId={leadId}
+          solutionType={solutionType}
+          isCompleted={isCompleted}
+          onRevisionApplied={onUpdate}
+          defaultExpanded
+        />
+      )}
 
       {/* File Explorer + Code Viewer */}
       <div className="glass-card overflow-hidden">

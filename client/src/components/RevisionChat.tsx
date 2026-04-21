@@ -10,10 +10,11 @@ interface RevisionChatProps {
   solutionType: 'AI_AGENT' | 'WEBSITE' | null;
   isCompleted: boolean;
   onRevisionApplied: () => void;
+  defaultExpanded?: boolean;
 }
 
-export default function RevisionChat({ leadId, solutionType, isCompleted, onRevisionApplied }: RevisionChatProps) {
-  const [expanded, setExpanded] = useState(false);
+export default function RevisionChat({ leadId, solutionType, isCompleted, onRevisionApplied, defaultExpanded = false }: RevisionChatProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [messages, setMessages] = useState<RevisionMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
