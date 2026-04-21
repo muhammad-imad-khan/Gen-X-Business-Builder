@@ -236,17 +236,11 @@ export default function LeadPreview() {
       <div className="animate-fade-in">
         {activeTab === 'insights' && <InsightsPanel enrichment={enrichment} />}
         {activeTab === 'solution' && <SolutionPanel deliverables={deliverables} solutionType={lead.solutionType} />}
-        {activeTab === 'app' && <GeneratedAppPanel deliverables={deliverables} deployment={deployment} leadId={lead.id} onUpdate={fetchData} planUsage={planUsage} onShowLimitModal={() => setShowLimitModal(true)} onShowIntegrationModal={() => setShowIntegrationModal(true)} />}
+        {activeTab === 'app' && <GeneratedAppPanel deliverables={deliverables} deployment={deployment} leadId={lead.id} onUpdate={fetchData} planUsage={planUsage} onShowLimitModal={() => setShowLimitModal(true)} onShowIntegrationModal={() => setShowIntegrationModal(true)} solutionType={lead.solutionType as 'AI_AGENT' | 'WEBSITE' | null} isCompleted={lead.status === 'COMPLETED'} />}
         {activeTab === 'outreach' && <OutreachPanel outreach={outreach} deployment={deployment} leadId={lead.id} onUpdate={fetchData} />}
       </div>
 
-      {/* Revision Chat */}
-      <RevisionChat
-        leadId={lead.id}
-        solutionType={lead.solutionType as 'AI_AGENT' | 'WEBSITE' | null}
-        isCompleted={lead.status === 'COMPLETED'}
-        onRevisionApplied={fetchData}
-      />
+
     </div>
   );
 }
@@ -523,7 +517,7 @@ function WebsiteView({ content }: { content: Record<string, any> }) {
   );
 }
 
-function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsage, onShowLimitModal, onShowIntegrationModal }: { deliverables: Deliverable[]; deployment: Deployment | null; leadId: string; onUpdate: () => void; planUsage: { plan: string; canDeploy: boolean; deploymentCount: number; maxDeployments: number } | null; onShowLimitModal: () => void; onShowIntegrationModal: () => void }) {
+function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsage, onShowLimitModal, onShowIntegrationModal, solutionType, isCompleted }: { deliverables: Deliverable[]; deployment: Deployment | null; leadId: string; onUpdate: () => void; planUsage: { plan: string; canDeploy: boolean; deploymentCount: number; maxDeployments: number } | null; onShowLimitModal: () => void; onShowIntegrationModal: () => void; solutionType: 'AI_AGENT' | 'WEBSITE' | null; isCompleted: boolean }) {
   const appDeliverable = deliverables.find(d => d.type === 'AI_AGENT_APP' || d.type === 'WEBSITE_APP');
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['src', 'src/app']));
@@ -736,6 +730,14 @@ function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsa
           <p className="mt-2 text-[11px] text-red-400/80 bg-red-500/5 rounded-lg px-3 py-2">{deployError}</p>
         )}
       </div>
+
+      {/* Revision Chat */}
+      <RevisionChat
+        leadId={leadId}
+        solutionType={solutionType}
+        isCompleted={isCompleted}
+        onRevisionApplied={onUpdate}
+      />
 
       {/* File Explorer + Code Viewer */}
       <div className="glass-card overflow-hidden">
