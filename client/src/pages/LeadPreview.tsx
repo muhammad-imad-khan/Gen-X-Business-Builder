@@ -525,6 +525,7 @@ function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsa
   const [deployError, setDeployError] = useState<string | null>(null);
   const [addingUrl, setAddingUrl] = useState(false);
   const [urlAdded, setUrlAdded] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   if (!appDeliverable) {
     return <EmptyState message="Application code not yet generated. Processing may still be in progress." />;
