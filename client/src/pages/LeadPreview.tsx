@@ -712,11 +712,19 @@ function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsa
           {isCompleted && (
             <button
               onClick={() => setShowChat(!showChat)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                showChat
-                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
-                  : 'bg-white/[0.06] border border-white/[0.1] text-white hover:bg-white/[0.1]'
-              }`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 500,
+                color: showChat ? '#818cf8' : '#e2e8f0',
+                backgroundColor: showChat ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.08)',
+                border: showChat ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.15)',
+                cursor: 'pointer',
+              }}
             >
               <MessageSquare className="w-3.5 h-3.5" />
               <span>Revise</span>
@@ -727,7 +735,7 @@ function GeneratedAppPanel({ deliverables, deployment, leadId, onUpdate, planUsa
         {/* Deploy URL display */}
         {deployment?.status === 'DEPLOYED' && deployment.deployUrl && (
           <div className="mt-3 flex items-center gap-2">
-            <a
+            <aa
               href={deployment.deployUrl}
               target="_blank"
               rel="noopener noreferrer"
