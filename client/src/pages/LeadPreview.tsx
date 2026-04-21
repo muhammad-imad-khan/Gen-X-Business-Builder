@@ -8,6 +8,7 @@ import {
   Lock, Sparkles, AlertTriangle, FileCode, FolderOpen, ChevronRight, ChevronDown,
 } from 'lucide-react';
 import Modal, { ModalHeader, ModalBody, ModalFooter } from '../components/Modal';
+import RevisionChat from '../components/RevisionChat';
 
 export default function LeadPreview() {
   const { id } = useParams<{ id: string }>();
@@ -238,6 +239,14 @@ export default function LeadPreview() {
         {activeTab === 'app' && <GeneratedAppPanel deliverables={deliverables} deployment={deployment} leadId={lead.id} onUpdate={fetchData} planUsage={planUsage} onShowLimitModal={() => setShowLimitModal(true)} onShowIntegrationModal={() => setShowIntegrationModal(true)} />}
         {activeTab === 'outreach' && <OutreachPanel outreach={outreach} deployment={deployment} leadId={lead.id} onUpdate={fetchData} />}
       </div>
+
+      {/* Revision Chat */}
+      <RevisionChat
+        leadId={lead.id}
+        solutionType={lead.solutionType as 'AI_AGENT' | 'WEBSITE' | null}
+        isCompleted={lead.status === 'COMPLETED'}
+        onRevisionApplied={fetchData}
+      />
     </div>
   );
 }

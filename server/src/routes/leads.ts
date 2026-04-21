@@ -9,6 +9,7 @@ import { getPlanUsage } from '../lib/plan-limits';
 import { deployToVercel } from '../services/deployment';
 import { generateProjectFiles } from '../services/code-generator';
 import { generateOutreachMessage } from '../services/outreach-generator';
+import { processRevision, getChatHistory } from '../services/revision';
 
 const router = Router();
 
@@ -353,6 +354,60 @@ router.post('/:id/outreach/add-url', async (req: Request, res: Response, next: N
 
     logger.info({ leadId: lead.id }, 'Outreach regenerated with deploy URL');
     res.json({ subject: result.subject, body: result.body });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Revision Chat: Get History ────────────────────────────────
+router.get('/:id/chat', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, userId: req.user!.userId },
+    });
+    if (!lead) { res.status(404).json({ error: 'Lead not found' }); return; }
+
+    const target = req.query.target as string | undefined;
+    const messages = await getChatHistory(lead.id, target);
+    res.json({ messages });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Revision Chat: Send Message ───────────────────────────────
+router.post('/:id/chat', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { message, target } = req.body;
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      res.status(400).json({ error: 'message is required' });
+      return;
+    }
+    const validTargets = ['AI_AGENT_SPEC', 'WEBSITE_PROPOSAL', 'OUTREACH'];
+    if (!target || !validTargets.includes(target)) {
+      res.status(400).json({ error: `target must be one of: ${validTargets.join(', ')}` });
+      return;
+    }
+
+    const lead = await prisma.lead.findFirst({
+      where: { id: req.params.id as string, userId: req.user!.userId },
+    });
+    if (!lead) { res.status(404).json({ error: 'Lead not found' }); return; }
+    if (lead.status !== 'COMPLETED') {
+      res.status(400).json({ error: 'Lead must be fully processed before revisions' });
+      return;
+    }
+
+    const result = await processRevision({
+      leadId: lead.id,
+      message: message.trim(),
+      target,
+    });
+
+    res.json({
+      reply: result.reply,
+      updated: !!result.updatedContent,
+    });
   } catch (err) {
     next(err);
   }

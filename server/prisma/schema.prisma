@@ -84,11 +84,12 @@ model Lead {
   updatedAt DateTime @updatedAt      @map("updated_at")
 
   // Relations
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  enrichment   Enrichment?
-  jobs         Job[]
-  deliverables Deliverable[]
-  outreach     OutreachMessage?
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrichment       Enrichment?
+  jobs             Job[]
+  deliverables     Deliverable[]
+  outreach         OutreachMessage?
+  revisionMessages RevisionMessage[]
 
   @@index([batchId])
   @@index([userId])
@@ -278,6 +279,24 @@ model Deployment {
 
   @@index([leadId])
   @@map("deployments")
+}
+
+// ─── RevisionMessage: chat history for revision requests ───────
+model RevisionMessage {
+  id     String @id @default(uuid())
+  leadId String @map("lead_id")
+
+  role    String   // "user" | "assistant"
+  content String   @db.Text
+  target  String?  // "AI_AGENT_SPEC" | "WEBSITE_PROPOSAL" | "OUTREACH" | null (general)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([createdAt])
+  @@map("revision_messages")
 }
 
 // ─── Enums ─────────────────────────────────────────────────────

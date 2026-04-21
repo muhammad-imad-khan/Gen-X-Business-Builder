@@ -153,6 +153,14 @@ export interface Category {
   createdAt: string;
 }
 
+export interface RevisionMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  target: string | null;
+  createdAt: string;
+}
+
 // ─── API Calls ─────────────────────────────────────────────────
 export const api = {
   // Leads
@@ -285,6 +293,17 @@ export const api = {
     request<{ subject: string; body: string }>(`/leads/${id}/outreach/add-url`, {
       method: 'POST',
       body: JSON.stringify({ deployUrl }),
+    }),
+
+  // Revision Chat
+  getChatHistory: (id: string, target?: string) => {
+    const qs = target ? `?target=${target}` : '';
+    return request<{ messages: RevisionMessage[] }>(`/leads/${id}/chat${qs}`);
+  },
+  sendChatMessage: (id: string, message: string, target: string) =>
+    request<{ reply: string; updated: boolean }>(`/leads/${id}/chat`, {
+      method: 'POST',
+      body: JSON.stringify({ message, target }),
     }),
 };
 
